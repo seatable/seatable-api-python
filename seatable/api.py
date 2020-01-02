@@ -30,9 +30,8 @@ class SeaTableAPI(object):
         self.uuid = None
         self.jwt_token = None
         self.headers = None
-        self._auth()
 
-    def _auth(self):
+    def auth(self):
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
         response = requests.get(url, headers=headers)
