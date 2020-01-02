@@ -25,13 +25,14 @@ class SeaTableAPI(object):
     """
 
     def __init__(self, token, server_url):
-        self.token = str(token)
-        self.server_url = parse_server_url(str(server_url))
+        self.token = token
+        self.server_url = parse_server_url(server_url)
         self.uuid = None
         self.jwt_token = None
         self.headers = None
+        self._auth()
 
-    def get_jwt_token(self):
+    def _auth(self):
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
         response = requests.get(url, headers=headers)
@@ -39,10 +40,7 @@ class SeaTableAPI(object):
 
         self.uuid = data.get('dtable_uuid')
         self.jwt_token = data.get('access_token')
-        self.headers = parse_headers(jwt_token)
-
-    def load_table_data(self):
-        ...
+        self.headers = parse_headers(self.jwt_token)
 
     def _row_server_url(self):
         return self.server_url + '/dtable-server/api/v1/dtables/' + self.uuid + '/rows/'
