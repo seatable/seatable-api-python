@@ -4,23 +4,24 @@ from seatable import SeaTable
 server_url = 'http://cloud.seatable.cn'
 api_token = ''
 
-host = 'localhost'
-user = ''
-password = ''
-db = 'seatable'
-
 
 def sync_mysql():
     """Sync database into the table
     """
     # seatable data
     seatable = SeaTable(server_url, api_token)
+
     table_name = 'Table1'
     rows = seatable.load_rows(table_name)
     row_keys = [row.get('Name') for row in rows]
 
     # mysql data
+    host = 'localhost'
+    user = ''
+    password = ''
+    db = 'seatable'
     connection = pymysql.connect(host=host, user=user, password=password, db=db)
+
     with connection.cursor(pymysql.cursors.DictCursor) as cursor:
         sql = "SELECT * FROM order"
         cursor.execute(sql)
