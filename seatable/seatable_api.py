@@ -3,13 +3,14 @@ import requests
 
 
 def parse_headers(token):
-    return {'Authorization': 'Token ' + str(token),
-            'Content-Type': 'application/json',
-            }
+    return {
+        'Authorization': 'Token ' + token,
+        'Content-Type': 'application/json',
+    }
 
 
 def parse_server_url(server_url):
-    return server_url[:-1] if server_url[-1] == '/' else server_url
+    return server_url.rstrip('/')
 
 
 def parse_response(response):
@@ -24,35 +25,52 @@ class SeaTableAPI(object):
     """SeaTable API
     """
 
-    def __init__(self, token, server_url):
+    def __init__(self, server_url, token):
+        """
+        :param server_url: str
+        :param token: str
+        """
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.uuid = None
-        self.jwt_token = None
         self.headers = None
 
+    def __str__(self):
+        return 'SeaTableAPI Object [ %s ]' % self.uuid
+
     def auth(self):
+        """Auth to SeaTable
+        """
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
         response = requests.get(url, headers=headers)
         data = parse_response(response)
 
         self.uuid = data.get('dtable_uuid')
-        self.jwt_token = data.get('access_token')
-        self.headers = parse_headers(self.jwt_token)
+        jwt_token = data.get('access_token')
+        self.headers = parse_headers(jwt_token)
 
     def _row_server_url(self):
         return self.server_url + '/dtable-server/api/v1/dtables/' + self.uuid + '/rows/'
 
     def load_rows(self, table_name):
+        """
+        :param table_name: str
+        :return: list
+        """
         url = self._row_server_url()
         params = {
             'table_name': table_name,
         }
         response = requests.get(url, params=params, headers=self.headers)
-        return parse_response(response)
+        data = parse_response(response)
+        return data.get('rows')
 
     def append_row(self, table_name, row_data):
+        """
+        :param table_name: str
+        :param row_data: dict
+        """
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
@@ -62,6 +80,11 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     def insert_row(self, table_name, row_data, anchor_row_id):
+        """
+        :param table_name: str
+        :param row_data: dict
+        :param anchor_row_id: str
+        """
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
@@ -72,6 +95,11 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     def update_row(self, table_name, row_id, row_data):
+        """
+        :param table_name: str
+        :param row_id: str
+        :param row_data: dict
+        """
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
@@ -82,6 +110,10 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     def delete_row(self, table_name, row_id):
+        """
+        :param table_name: str
+        :param row_id: str
+        """
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,

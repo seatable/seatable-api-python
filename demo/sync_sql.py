@@ -1,5 +1,5 @@
 import pymysql
-from seatable import SeaTable
+from seatable import SeaTableAPI
 
 server_url = 'http://cloud.seatable.cn'
 api_token = ''
@@ -9,10 +9,11 @@ def sync_mysql():
     """Sync database into the table
     """
     # seatable data
-    seatable = SeaTable(server_url, api_token)
+    seatable_api = SeaTableAPI(server_url, api_token)
+    seatable_api.auth()
 
     table_name = 'Table1'
-    rows = seatable.load_rows(table_name)
+    rows = seatable_api.load_rows(table_name)
     row_keys = [row.get('Name') for row in rows]
 
     # mysql data
@@ -31,7 +32,7 @@ def sync_mysql():
     for data in mysql_data:
         if data.get('name') not in row_keys:
             row_data = {'Name': data.get('name')}
-            seatable.append_row(row_data)
+            seatable_api.append_row(row_data)
 
 
 if __name__ == '__main__':

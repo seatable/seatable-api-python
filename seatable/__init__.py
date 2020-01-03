@@ -1,1 +1,1 @@
-from .main import SeaTable
+from .seatable_api import SeaTableAPI
