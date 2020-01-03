@@ -29,10 +29,12 @@ def sync_mysql():
         mysql_data = cursor.fetchall()
 
     # sync
-    for data in mysql_data:
-        if data.get('name') not in row_keys:
-            row_data = {'Name': data.get('name')}
-            seatable_api.append_row(row_data)
+    for item in mysql_data:
+        if item.get('name') not in row_keys:
+            row_data = {
+                'Name': item.get('name'),
+            }
+            seatable_api.append_row(table_name, row_data)
 
 
 if __name__ == '__main__':
