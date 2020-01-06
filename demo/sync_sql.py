@@ -1,5 +1,5 @@
 import pymysql
-from seatable import SeaTableAPI
+from seatableapi import SeaTableAPI
 
 server_url = 'http://cloud.seatable.cn'
 api_token = ''
