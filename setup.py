@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 __version__ = '0.1.0'
 
 
-setup(name='seatableapi',
+setup(name='seatable-api',
       version=__version__,
       license='Apache Licence',
       description='Client interface for SeaTable Web API',
