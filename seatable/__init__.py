@@ -1,1 +1,0 @@
-from .seatable_api import SeaTableAPI
