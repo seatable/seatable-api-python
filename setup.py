@@ -12,7 +12,7 @@ setup(name='seatable-api',
       url='https://github.com/seatable/seatable-api-python',
 
       platforms='any',
-      packages=find_packages(),
+      packages=find_packages(),  # folder with __init__.py
       install_requires=['requests'],
       classifiers=['Programming Language :: Python'],
       )
