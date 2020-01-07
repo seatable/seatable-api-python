@@ -1,15 +1,15 @@
 import pymysql
 from seatable_api import SeaTableAPI
 
-server_url = 'http://cloud.seatable.cn'
-api_token = ''
+server_url = 'http://127.0.0.1:8000'
+api_token = '48b6a41a0c2e1ee4bf294ed42445914025a0a60c'
 
 
 def sync_mysql():
     """Sync database into the table
     """
     # seatable data
-    seatable = SeaTableAPI(server_url, api_token)
+    seatable = SeaTableAPI(api_token, server_url)
     seatable.auth()
 
     table_name = 'Table1'
