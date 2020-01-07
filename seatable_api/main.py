@@ -55,15 +55,18 @@ class SeaTableAPI(object):
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/rows/'
 
-    def load_rows(self, table_name):
+    def list_rows(self, table_name, view_name=None):
         """
         :param table_name: str
+        :param view_name: str
         :return: list
         """
         url = self._row_server_url()
         params = {
             'table_name': table_name,
         }
+        if view_name:
+            params['view_name'] = view_name
         response = requests.get(url, params=params, headers=self.headers)
         data = parse_response(response)
         return data.get('rows')
