@@ -25,16 +25,14 @@ class SeaTableAPI(object):
     """SeaTable API
     """
 
-    def __init__(self, token, server_url, api_server_url=None):
+    def __init__(self, token, server_url):
         """
         :param token: str
-        :param server_url: str: dtable-web
-        :param api_url: str: dtable-server
+        :param server_url: str
         """
         self.token = token
         self.server_url = parse_server_url(server_url)
-        self.api_server_url = parse_server_url(api_server_url) \
-            if api_server_url else self.server_url + '/dtable-server'
+        self.dtable_server_url = None
         self.uuid = None
         self.headers = None
 
@@ -52,9 +50,10 @@ class SeaTableAPI(object):
         self.uuid = data.get('dtable_uuid')
         jwt_token = data.get('access_token')
         self.headers = parse_headers(jwt_token)
+        self.dtable_server_url = parse_server_url(data.get('dtable_server'))
 
     def _row_server_url(self):
-        return self.api_server_url + '/api/v1/dtables/' + self.uuid + '/rows/'
+        return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/rows/'
 
     def load_rows(self, table_name):
         """
