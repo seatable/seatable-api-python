@@ -15,13 +15,11 @@ def filter_rows():
             "column_name": "Name",
             "filter_predicate": "contains",
             "filter_term": "a",
-            "filter_term_modifier": ""
         },
         {
             "column_name": "Name",
             "filter_predicate": "contains",
             "filter_term": "b",
-            "filter_term_modifier": ""
         }
     ]
 

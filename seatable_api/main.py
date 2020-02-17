@@ -1,6 +1,7 @@
 import json
 import requests
 
+from .constants import ROW_FILTER_KEYS
 
 def parse_headers(token):
     return {
@@ -44,7 +45,6 @@ class SeaTableAPI(object):
         """
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
-        print('url1 = ' + url)
         response = requests.get(url, headers=headers)
         data = parse_response(response)
 
@@ -132,7 +132,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
 
-    def filter_rows(self, table_name, view_name=None, filters=[], filter_conjunction=None):
+    def filter_rows(self, table_name, view_name=None, filters=[], filter_conjunction='And'):
         """
         :param table_name: str
         :param view_name: str
@@ -140,16 +140,31 @@ class SeaTableAPI(object):
         :param filter_conjunction: str, 'And' or 'Or'
         :return: list
         """
-        url = self._filtered_rows_server_url()
+        # params check
+        if not filters:
+            raise ValueError('filters can not be empty.')
+
+        for filter in filters:
+            for key in filter.keys():
+                if key not in ROW_FILTER_KEYS:
+                    raise ValueError('filters invalid.')
+
+        if filter_conjunction not in ['And', 'Or']:
+            raise ValueError('filter_conjunction invalud, filter_conjunction must be '
+                             '"And" or "Or"')
+
         params = {
             'table_name': table_name,
         }
         if view_name:
             params['view_name'] = view_name
+
         json_data = {
             'filters': filters,
             'filter_conjunction': filter_conjunction,
         }
+
+        url = self._filtered_rows_server_url()
         response = requests.get(url, json=json_data, params=params, headers=self.headers)
         data = parse_response(response)
         return data.get('rows')
