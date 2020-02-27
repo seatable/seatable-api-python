@@ -59,6 +59,9 @@ class SeaTableAPI(object):
     def _filtered_rows_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/filtered-rows/'
 
+    def _app_download_link_url(self):
+        return self.server_url + '/api/v2.1/dtable/app-download-link/'
+
     def list_rows(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -168,3 +171,12 @@ class SeaTableAPI(object):
         response = requests.get(url, json=json_data, params=params, headers=self.headers)
         data = parse_response(response)
         return data.get('rows')
+
+
+    def get_file_download_link(self, path):
+        url = self._app_download_link_url()
+        params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers)
+        data = parse_response(response)
+        return data.get('download_link')
