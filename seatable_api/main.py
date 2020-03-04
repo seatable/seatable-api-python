@@ -16,9 +16,9 @@ def parse_server_url(server_url):
 
 def parse_response(response):
     if response.status_code >= 400:
-        raise ConnectionError(response.status_code, response.content)
+        raise ConnectionError(response.status_code, response.text)
     else:
-        data = json.loads(response.content)
+        data = json.loads(response.text)
         return data
 
 
