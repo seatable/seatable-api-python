@@ -34,11 +34,12 @@ class SeaTableAPI(object):
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
-        self.uuid = None
+        self.dtable_uuid = None
+        self.jwt_token = None
         self.headers = None
 
     def __str__(self):
-        return 'SeaTableAPI Object [ %s ]' % self.uuid
+        return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
 
     def auth(self):
         """Auth to SeaTable
@@ -48,16 +49,16 @@ class SeaTableAPI(object):
         response = requests.get(url, headers=headers)
         data = parse_response(response)
 
-        self.uuid = data.get('dtable_uuid')
-        jwt_token = data.get('access_token')
-        self.headers = parse_headers(jwt_token)
+        self.dtable_uuid = data.get('dtable_uuid')
+        self.jwt_token = data.get('access_token')
+        self.headers = parse_headers(self.jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
 
     def _row_server_url(self):
-        return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/rows/'
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
     def _filtered_rows_server_url(self):
-        return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/filtered-rows/'
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
