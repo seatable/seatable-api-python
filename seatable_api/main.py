@@ -37,7 +37,6 @@ class SeaTableAPI(object):
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
         self.dtable_uuid = None
-        self.jwt_token = None
         self.headers = None
         self.socketIO = None
 
@@ -53,13 +52,13 @@ class SeaTableAPI(object):
         data = parse_response(response)
 
         self.dtable_uuid = data.get('dtable_uuid')
-        self.jwt_token = data.get('access_token')
-        self.headers = parse_headers(self.jwt_token)
+        jwt_token = data.get('access_token')
+        self.headers = parse_headers(jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
 
         if with_socket_io is True:
             self.socketIO = connect_socket_io(
-                self.dtable_server_url, self.dtable_uuid, self.jwt_token)
+                self.dtable_server_url, self.dtable_uuid, jwt_token)
 
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
