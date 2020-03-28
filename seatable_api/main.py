@@ -2,6 +2,8 @@ import json
 import requests
 
 from .constants import ROW_FILTER_KEYS
+from .socket_io import connect_socket_io
+
 
 def parse_headers(token):
     return {
@@ -34,13 +36,14 @@ class SeaTableAPI(object):
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
-        self.uuid = None
+        self.dtable_uuid = None
         self.headers = None
+        self.socketIO = None
 
     def __str__(self):
-        return 'SeaTableAPI Object [ %s ]' % self.uuid
+        return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
 
-    def auth(self):
+    def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
@@ -48,16 +51,20 @@ class SeaTableAPI(object):
         response = requests.get(url, headers=headers)
         data = parse_response(response)
 
-        self.uuid = data.get('dtable_uuid')
+        self.dtable_uuid = data.get('dtable_uuid')
         jwt_token = data.get('access_token')
         self.headers = parse_headers(jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
 
+        if with_socket_io is True:
+            self.socketIO = connect_socket_io(
+                self.dtable_server_url, self.dtable_uuid, jwt_token)
+
     def _row_server_url(self):
-        return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/rows/'
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
     def _filtered_rows_server_url(self):
-        return self.dtable_server_url + '/api/v1/dtables/' + self.uuid + '/filtered-rows/'
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
@@ -134,7 +141,6 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
-
     def filter_rows(self, table_name, view_name=None, filters=[], filter_conjunction='And'):
         """
         :param table_name: str
@@ -168,10 +174,10 @@ class SeaTableAPI(object):
         }
 
         url = self._filtered_rows_server_url()
-        response = requests.get(url, json=json_data, params=params, headers=self.headers)
+        response = requests.get(
+            url, json=json_data, params=params, headers=self.headers)
         data = parse_response(response)
         return data.get('rows')
-
 
     def get_file_download_link(self, path):
         url = self._app_download_link_url()
