@@ -44,7 +44,7 @@ class SeaTableAPI(object):
     def __str__(self):
         return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
 
-    def auth(self):
+    def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
@@ -57,11 +57,9 @@ class SeaTableAPI(object):
         self.headers = parse_headers(self.jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
 
-    def auth_socket_io(self):
-        """Auth to SeaTable Socket IO
-        """
-        self.socketIO = connect_socket_io(
-            self.dtable_server_url, self.dtable_uuid, self.jwt_token)
+        if with_socket_io is True:
+            self.socketIO = connect_socket_io(
+                self.dtable_server_url, self.dtable_uuid, self.jwt_token)
 
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
