@@ -2,6 +2,8 @@ import json
 import requests
 
 from .constants import ROW_FILTER_KEYS
+from .socket_io import connect_socket_io
+
 
 def parse_headers(token):
     return {
@@ -37,6 +39,7 @@ class SeaTableAPI(object):
         self.dtable_uuid = None
         self.jwt_token = None
         self.headers = None
+        self.socketIO = None
 
     def __str__(self):
         return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
@@ -53,6 +56,12 @@ class SeaTableAPI(object):
         self.jwt_token = data.get('access_token')
         self.headers = parse_headers(self.jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
+
+    def auth_socket_io(self):
+        """Auth to SeaTable Socket IO
+        """
+        self.socketIO = connect_socket_io(
+            self.dtable_server_url, self.dtable_uuid, self.jwt_token)
 
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
@@ -135,7 +144,6 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
-
     def filter_rows(self, table_name, view_name=None, filters=[], filter_conjunction='And'):
         """
         :param table_name: str
@@ -169,10 +177,10 @@ class SeaTableAPI(object):
         }
 
         url = self._filtered_rows_server_url()
-        response = requests.get(url, json=json_data, params=params, headers=self.headers)
+        response = requests.get(
+            url, json=json_data, params=params, headers=self.headers)
         data = parse_response(response)
         return data.get('rows')
-
 
     def get_file_download_link(self, path):
         url = self._app_download_link_url()
