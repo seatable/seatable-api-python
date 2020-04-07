@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 
 setup(name='seatable-api',
@@ -13,6 +13,6 @@ setup(name='seatable-api',
 
       platforms='any',
       packages=find_packages(),  # folder with __init__.py
-      install_requires=['requests'],
+      install_requires=['requests', 'socketIO-client-nexus'],
       classifiers=['Programming Language :: Python'],
       )
