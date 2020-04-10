@@ -186,3 +186,8 @@ class SeaTableAPI(object):
         response = requests.get(url, params=params, headers=headers)
         data = parse_response(response)
         return data.get('download_link')
+
+    def get_seafile_file_content_by_file_token(self, seafile_server_url, token):
+        url = seafile_server_url.rstrip('/') + '/f/' + token + '/?dl=1'
+        response = requests.get(url)
+        return response.content
