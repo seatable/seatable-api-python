@@ -69,6 +69,9 @@ class SeaTableAPI(object):
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
 
+    def _app_upload_link_url(self):
+        return self.server_url + '/api/v2.1/dtable/app-upload-link/'
+
     def list_rows(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -186,3 +189,10 @@ class SeaTableAPI(object):
         response = requests.get(url, params=params, headers=headers)
         data = parse_response(response)
         return data.get('download_link')
+
+    def get_file_upload_link(self):
+        url = self._app_upload_link_url()
+        headers = parse_headers(self.token)
+        response = requests.get(url, headers=headers)
+        data = parse_response(response)
+        return data
