@@ -66,6 +66,9 @@ class SeaTableAPI(object):
     def _filtered_rows_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
+    def _row_link_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/links/'
+
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
 
@@ -183,6 +186,10 @@ class SeaTableAPI(object):
         return data.get('rows')
 
     def get_file_download_link(self, path):
+        """
+        :param path: str
+        :return: str
+        """
         url = self._app_download_link_url()
         params = {'path': path}
         headers = parse_headers(self.token)
@@ -191,6 +198,9 @@ class SeaTableAPI(object):
         return data.get('download_link')
 
     def get_file_upload_link(self):
+        """
+        :return: dict
+        """
         url = self._app_upload_link_url()
         headers = parse_headers(self.token)
         response = requests.get(url, headers=headers)
