@@ -43,11 +43,9 @@ def row_link():
     other_row = other_rows[1]
     other_row_id = other_row['_id']
 
-    # add row link
-    seatable.add_row_link(table_name, other_table_name, row_id, other_row_id)
+    seatable.add_link(table_name, other_table_name, row_id, other_row_id)
 
-    # delete row link
-    # seatable.delete_row_link(table_name, other_table_name, row_id, other_row_id)
+    # seatable.remove_link(table_name, other_table_name, row_id, other_row_id)
 
 
 if __name__ == '__main__':
