@@ -206,3 +206,37 @@ class SeaTableAPI(object):
         response = requests.get(url, headers=headers)
         data = parse_response(response)
         return data
+
+    def add_row_link(self, table_name, other_table_name, row_id, other_row_id):
+        """
+        :param table_name: str
+        :param other_table_name: str
+        :param row_id: str
+        :param other_row_id: str
+        """
+        url = self._row_link_server_url()
+        json_data = {
+            'table_name': table_name,
+            'other_table_name': other_table_name,
+            'table_row_id': row_id,
+            'other_table_row_id': other_row_id,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers)
+        return parse_response(response)
+
+    def delete_row_link(self, table_name, other_table_name, row_id, other_row_id):
+        """
+        :param table_name: str
+        :param other_table_name: str
+        :param row_id: str
+        :param other_row_id: str
+        """
+        url = self._row_link_server_url()
+        json_data = {
+            'table_name': table_name,
+            'other_table_name': other_table_name,
+            'table_row_id': row_id,
+            'other_table_row_id': other_row_id,
+        }
+        response = requests.delete(url, json=json_data, headers=self.headers)
+        return parse_response(response)
