@@ -60,6 +60,9 @@ class SeaTableAPI(object):
             self.socketIO = connect_socket_io(
                 self.dtable_server_url, self.dtable_uuid, jwt_token)
 
+    def _metadata_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
+
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
@@ -74,6 +77,15 @@ class SeaTableAPI(object):
 
     def _app_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-upload-link/'
+
+    def get_metadata(self):
+        """
+        :return: dict
+        """
+        url = self._metadata_server_url()
+        response = requests.get(url, headers=self.headers)
+        data = parse_response(response)
+        return data.get('metadata')
 
     def list_rows(self, table_name, view_name=None):
         """
