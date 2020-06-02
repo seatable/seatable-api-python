@@ -60,6 +60,9 @@ class SeaTableAPI(object):
             self.socketIO = connect_socket_io(
                 self.dtable_server_url, self.dtable_uuid, jwt_token)
 
+    def _metadata_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
+
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
@@ -74,6 +77,15 @@ class SeaTableAPI(object):
 
     def _app_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-upload-link/'
+
+    def get_metadata(self):
+        """
+        :return: dict
+        """
+        url = self._metadata_server_url()
+        response = requests.get(url, headers=self.headers)
+        data = parse_response(response)
+        return data.get('metadata')
 
     def list_rows(self, table_name, view_name=None):
         """
@@ -207,8 +219,9 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
-    def add_link(self, table_name, other_table_name, row_id, other_row_id):
+    def add_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
+        :param link_id: str
         :param table_name: str
         :param other_table_name: str
         :param row_id: str
@@ -216,6 +229,7 @@ class SeaTableAPI(object):
         """
         url = self._row_link_server_url()
         json_data = {
+            'link_id': link_id,
             'table_name': table_name,
             'other_table_name': other_table_name,
             'table_row_id': row_id,
@@ -224,8 +238,9 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
-    def remove_link(self, table_name, other_table_name, row_id, other_row_id):
+    def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
+        :param link_id: str
         :param table_name: str
         :param other_table_name: str
         :param row_id: str
@@ -233,6 +248,7 @@ class SeaTableAPI(object):
         """
         url = self._row_link_server_url()
         json_data = {
+            'link_id': link_id,
             'table_name': table_name,
             'other_table_name': other_table_name,
             'table_row_id': row_id,

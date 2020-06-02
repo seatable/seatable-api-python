@@ -30,22 +30,39 @@ def row_link():
 
     table_name = 'Table1'
     other_table_name = 'Table2'
+    column_name = 'Foreign Key'
 
     seatable = SeaTableAPI(api_token, server_url)
     seatable.auth()
 
+    # get column link id
+    metadata = seatable.get_metadata()
+
+    table = None
+    for table_item in metadata['tables']:
+        if table_item['name'] == table_name:
+            table = table_item
+            break
+
+    column = None
+    for column_item in table['columns']:
+        if column_item['name'] == column_name:
+            column = column_item
+            break
+
+    link_id = column['data']['link_id']
+
+    # get row id
     rows = seatable.list_rows(table_name)
     other_rows = seatable.list_rows(other_table_name)
+    row_id = rows[0]['_id']
+    other_row_id = other_rows[0]['_id']
 
-    row = rows[0]
-    row_id = row['_id']
+    # add link
+    seatable.add_link(link_id, table_name, other_table_name,row_id, other_row_id)
 
-    other_row = other_rows[1]
-    other_row_id = other_row['_id']
-
-    seatable.add_link(table_name, other_table_name, row_id, other_row_id)
-
-    # seatable.remove_link(table_name, other_table_name, row_id, other_row_id)
+    # remove link
+    # seatable.remove_link(link_id, table_name, other_table_name, row_id, other_row_id)
 
 
 if __name__ == '__main__':

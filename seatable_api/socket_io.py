@@ -25,14 +25,14 @@ def on_update_dtable(data, index, *args):
     """ Default is print received data
         You can overwrite this event
     """
-    print(f'[ {UPDATE_DTABLE} ] : {data}')
+    print(UPDATE_DTABLE, data)
 
 
 def on_new_notification(data, index, *args):
     """ Default is print received data
         You can overwrite this event
     """
-    print(f'[ {NEW_NOTIFICATION} ] : {data}')
+    print(NEW_NOTIFICATION, data)
 
 
 def connect_socket_io(dtable_server_url, dtable_uuid, jwt_token):
