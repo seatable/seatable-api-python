@@ -207,8 +207,9 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
-    def add_link(self, table_name, other_table_name, row_id, other_row_id):
+    def add_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
+        :param link_id: str
         :param table_name: str
         :param other_table_name: str
         :param row_id: str
@@ -216,6 +217,7 @@ class SeaTableAPI(object):
         """
         url = self._row_link_server_url()
         json_data = {
+            'link_id': link_id,
             'table_name': table_name,
             'other_table_name': other_table_name,
             'table_row_id': row_id,
@@ -224,8 +226,9 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
-    def remove_link(self, table_name, other_table_name, row_id, other_row_id):
+    def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
+        :param link_id: str
         :param table_name: str
         :param other_table_name: str
         :param row_id: str
@@ -233,6 +236,7 @@ class SeaTableAPI(object):
         """
         url = self._row_link_server_url()
         json_data = {
+            'link_id': link_id,
             'table_name': table_name,
             'other_table_name': other_table_name,
             'table_row_id': row_id,
