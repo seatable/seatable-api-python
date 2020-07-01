@@ -1,6 +1,20 @@
 import json
 
 
+def _get_row(data):
+    op_type = data['op_type']
+    if op_type == 'insert_row':
+        row = data['row_data']
+    elif op_type == 'modify_row':
+        row = data['updated']
+    elif op_type == 'delete_row':
+        row = data['deleted_row']
+    else:
+        row = None
+
+    return row
+
+
 def _get_table(metadata, table_id):
     tables = metadata['tables']
     table_filter = [table for table in tables if table['_id'] == table_id]
@@ -26,32 +40,31 @@ def _get_option_name(options, option_id):
     return option_name
 
 
-def convert_row(metadata, data):
-    # parse data
-    data = json.loads(data)
-    table_id = data['table_id']
-    row_id = data['row_id']
-    op_type = data['op_type']
+def convert_row(metadata, ws_data):
+    """ Convert websocket row data to readable row data
 
-    if op_type == 'modify_row':
-        row = data['updated']
-    elif op_type == 'insert_row':
-        row = data['row_data']
-    else:
-        row = {}
+    :param metadata: dict
+    :param ws_data: str
+    :return: dict
+    """
+    data = json.loads(ws_data)
+    row = _get_row(data)
+    if not row:
+        return data
 
-    table = _get_table(metadata, table_id)
-    columns = table['columns']
-    column_map = _get_column_map(columns)
+    table = _get_table(metadata, data['table_id'])
+    column_map = _get_column_map(table['columns'])
 
     # convert row
     result = {}
-    result['_id'] = row_id
-    result['op_type'] = op_type
+    result['_id'] = data['row_id']
+    result['op_type'] = data['op_type']
+    result['table_name'] = table['name']
 
     for column_key, cell_value in row.items():
         column = column_map.get(column_key)
         if not column:
+            # inner data
             continue
 
         column_name = column['name']
