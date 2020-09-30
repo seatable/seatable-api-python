@@ -5,9 +5,9 @@ import requests
 from seatable_api import Base
 
 
-server_url = 'https://dev.seafile.com/dtable-web/'
+## replace server_url and api_token with your server address and api token 
+server_url = 'https://cloud.seatable.io'
 api_token = '62374a03996cc365a977d1310bf8e099189db312'
-# api_token = '667e82266d2b99f86db4752ad799972acd7c50bb'
 
 base = Base(api_token, server_url)
 
