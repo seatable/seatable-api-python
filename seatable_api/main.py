@@ -66,6 +66,9 @@ class SeaTableAPI(object):
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
+    def _batch_row_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-append-rows/'
+
     def _filtered_rows_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
@@ -121,7 +124,7 @@ class SeaTableAPI(object):
         :param table_name: str
         :param rows_data: dict
         """
-        url = self._row_server_url()
+        url = self._batch_row_server_url()
         json_data = {
             'table_name': table_name,
             'rows': rows_data,
