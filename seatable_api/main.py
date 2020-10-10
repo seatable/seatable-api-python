@@ -116,6 +116,19 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
+    def batch_append_rows(self, table_name, rows_data):
+        """
+        :param table_name: str
+        :param rows_data: dict
+        """
+        url = self._row_server_url()
+        json_data = {
+            'table_name': table_name,
+            'rows': rows_data,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers)
+        return parse_response(response)
+
     def insert_row(self, table_name, row_data, anchor_row_id):
         """
         :param table_name: str
