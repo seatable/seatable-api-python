@@ -1,7 +1,8 @@
 import json
 import requests
 
-from .constants import ROW_FILTER_KEYS
+from .constants import ROW_FILTER_KEYS, ColumnTypes
+from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import connect_socket_io
 
 
@@ -20,9 +21,11 @@ def parse_response(response):
     if response.status_code >= 400:
         raise ConnectionError(response.status_code, response.text)
     else:
-        data = json.loads(response.text)
-        return data
-
+        try:
+            data = json.loads(response.text)
+            return data
+        except:
+            pass
 
 class SeaTableAPI(object):
     """SeaTable API
@@ -80,6 +83,9 @@ class SeaTableAPI(object):
 
     def _app_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-upload-link/'
+
+    def _column_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/columns/'
 
     def get_metadata(self):
         """
@@ -175,7 +181,7 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
-    def filter_rows(self, table_name, view_name=None, filters=[], filter_conjunction='And'):
+    def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
         """
         :param table_name: str
         :param view_name: str
@@ -186,6 +192,10 @@ class SeaTableAPI(object):
         # params check
         if not filters:
             raise ValueError('filters can not be empty.')
+        if not isinstance(filters, list):
+            raise ValueError('filters invalid.')
+        if len(filters) != len([f for f in filters if isinstance(f, dict)]):
+            raise ValueError('filters invalid.')
 
         for filter in filters:
             for key in filter.keys():
@@ -272,3 +282,149 @@ class SeaTableAPI(object):
         }
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
+
+    def list_columns(self, table_name, view_name=None):
+        """
+        :param table_name: str
+        :param view_name: str
+        :return: list
+        """
+        url = self._column_server_url()
+        params = {
+            'table_name': table_name,
+        }
+        if view_name:
+            params['view_name'] = view_name
+        response = requests.get(url, params=params, headers=self.headers)
+        data = parse_response(response)
+        return data.get('columns')
+
+    def insert_column(self, table_name, column_name, column_type, column_key=None):
+        """
+        :param table_name: str
+        :param column_name: str
+        :param column_type: ColumnType enum
+        :param column_key: str, which you want to insert after
+        :return: dict
+        """
+        if column_type not in ColumnTypes:
+            raise ValueError("type %s invalid!" % (column_type,))
+        url = self._column_server_url()
+        json_data = {
+            'table_name': table_name,
+            'column_name': column_name,
+            'column_type': column_type.value
+        }
+        if column_key:
+            json_data['column_key'] = column_key
+        response = requests.post(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def rename_column(self, table_name, column_key, new_column_name):
+        """
+        :param table_name: str
+        :param column_key: str
+        :param new_column_name: str
+        :return: dict
+        """
+        url = self._column_server_url()
+        json_data = {
+            'op_type': RENAME_COLUMN,
+            'table_name': table_name,
+            'column_key': column_key,
+            'new_column_name': new_column_name
+        }
+        response = requests.put(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def resize_column(self, table_name, column_key, new_column_width):
+        """
+        :param table_name: str
+        :param column_key: str
+        :param old_column_width: int
+        :param new_column_width: int
+        :return: dict
+        """
+        url = self._column_server_url()
+        json_data = {
+            'op_type': RESIZE_COLUMN,
+            'table_name': table_name,
+            'column_key': column_key,
+            'new_column_width': new_column_width
+        }
+        response = requests.put(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def freeze_column(self, table_name, column_key, frozen):
+        """
+        :param table_name: str
+        :param column_key: str
+        :param frozen: bool
+        :return: dict
+        """
+        url = self._column_server_url()
+        json_data = {
+            'op_type': FREEZE_COLUMN,
+            'table_name': table_name,
+            'column_key': column_key,
+            'frozen': frozen
+        }
+        response = requests.put(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def move_column(self, table_name, column_key, target_column_key):
+        """
+        :param table_name: str
+        :param column_key: str
+        :param target_column_key: bool
+        :return: dict
+        """
+        url = self._column_server_url()
+        json_data = {
+            'op_type': MOVE_COLUMN,
+            'table_name': table_name,
+            'column_key': column_key,
+            'target_column_key': target_column_key
+        }
+        response = requests.put(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def modify_column_type(self, table_name, column_key, new_column_type):
+        """
+        :param table_name: str
+        :param column_key: str
+        :param new_column_type: str
+        :return: dict
+        """
+        if new_column_type not in ColumnTypes:
+            raise ValueError("type %s invalid!" % (new_column_type,))
+        url = self._column_server_url()
+        json_data = {
+            'op_type': MODIFY_COLUMN_TYPE,
+            'table_name': table_name,
+            'column_key': column_key,
+            'new_column_type': new_column_type.value
+        }
+        response = requests.put(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
+
+    def delete_column(self, table_name, column_key):
+        """
+        :param table_name: str
+        :param column_key: str
+        :return: None
+        """
+        url = self._column_server_url()
+        json_data = {
+            'table_name': table_name,
+            'column_key': column_key
+        }
+        response = requests.delete(url, json=json_data, headers=self.headers)
+        data = parse_response(response)
+        return data
