@@ -25,7 +25,7 @@ def need_data(func):
 
 class Context:
     @property
-    def dtable_web_url(self):
+    def server_url(self):
         return os.environ.get('dtable_web_url')
 
     @property
