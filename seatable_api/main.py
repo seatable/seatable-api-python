@@ -1,4 +1,10 @@
+import io
+import os
 import json
+from datetime import datetime
+from urllib import parse
+from uuid import UUID
+
 import requests
 
 from .constants import ROW_FILTER_KEYS, ColumnTypes
@@ -27,6 +33,7 @@ def parse_response(response):
         except:
             pass
 
+
 class SeaTableAPI(object):
     """SeaTable API
     """
@@ -42,6 +49,8 @@ class SeaTableAPI(object):
         self.dtable_uuid = None
         self.headers = None
         self.socketIO = None
+        self.workspace_id = None
+        self.dtable_name = None
 
     def __str__(self):
         return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
@@ -58,6 +67,8 @@ class SeaTableAPI(object):
         jwt_token = data.get('access_token')
         self.headers = parse_headers(jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
+        self.workspace_id = data.get('workspace_id')
+        self.dtable_name = data.get('dtable_name')
 
         if with_socket_io is True:
             self.socketIO = connect_socket_io(
@@ -428,3 +439,93 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers)
         data = parse_response(response)
         return data
+
+    def download_file(self, url, save_path):
+        if not str(UUID(self.dtable_uuid)) in url:
+            raise Exception('url invalid.')
+        path = url.split(str(UUID(self.dtable_uuid)))[-1].strip('/')
+        download_link = self.get_file_download_link(parse.unquote(path))
+        response = requests.get(download_link)
+        if response.status_code != 200:
+            raise Exception('download file error')
+        file_name = parse.unquote(path).strip('/').split('/')[-1]
+        with open(os.path.join(save_path, file_name), 'wb') as f:
+            f.write(response.content)
+
+    def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type=None, replace=False):
+        """
+        relateive_path: relative path for upload, if None, default
+        file_type: if relative is None, file type must in ['image', 'file'], default file
+        """
+        upload_link_dict = self.get_file_upload_link()
+        parent_dir = upload_link_dict['parent_path']
+        upload_link = upload_link_dict['upload_link'] + '?ret-json=1'
+        if not relative_path:
+            if file_type not in ['image', 'file']:
+                raise Exception('relative or file_type invalid.')
+            else:
+                file_type = 'file'
+                relative_path = file_type + 's/' + str(datetime.today())[:7]
+        else:
+            relative_path = relative_path.strip('/')
+        response = requests.post(upload_link, data={
+            'parent_dir': parent_dir,
+            'relative_path': relative_path,
+            'replace': 1 if replace else 0
+        }, files={
+            'file': (name, io.BytesIO(content))
+        })
+        d = response.json()[0]
+        url = '%(server)s/workspace/%(workspace_id)s/asset/%(dtable_uuid)s/%(relative_path)s/%(filename)s' % {
+            'server': self.server_url.strip('/'),
+            'workspace_id': self.workspace_id,
+            'dtable_uuid': str(UUID(self.dtable_uuid)),
+            'file_type': file_type,
+            'relative_path': relative_path.strip('/'),
+            'filename': d.get('name', name)
+        }
+        return {
+            'type': file_type,
+            'size': d.get('size'),
+            'name': d.get('name'),
+            'url': url
+        }
+
+    def upload_local_file(self, file_path, name=None, relative_path=None, file_type=None, replace=False):
+        if file_type not in ['image', 'file']:
+            raise Exception('file_type invalid.')
+        if not name:
+            name = file_path.strip('/').split('/')[-1]
+        if not relative_path:
+            if file_type not in ['image', 'file']:
+                raise Exception('relative or file_type invalid.')
+            else:
+                file_type = 'file'
+                relative_path = file_type + 's/' + str(datetime.today())[:7]
+        else:
+            relative_path = relative_path.strip('/')
+        upload_link_dict = self.get_file_upload_link()
+        parent_dir = upload_link_dict['parent_path']
+        upload_link = upload_link_dict['upload_link'] + '?ret-json=1'
+        response = requests.post(upload_link, data={
+            'parent_dir': parent_dir,
+            'relative_path': relative_path,
+            'replace': 1 if replace else 0
+        }, files={
+            'file': (name, open(file_path, 'rb'))
+        })
+        d = response.json()[0]
+        url = '%(server)s/workspace/%(workspace_id)s/asset/%(dtable_uuid)s/%(relative_path)s/%(filename)s' % {
+            'server': self.server_url.strip('/'),
+            'workspace_id': self.workspace_id,
+            'dtable_uuid': str(UUID(self.dtable_uuid)),
+            'file_type': file_type,
+            'relative_path': relative_path.strip('/'),
+            'filename': d.get('name', name)
+        }
+        return {
+            'type': file_type,
+            'size': d.get('size'),
+            'name': d.get('name'),
+            'url': url
+        }
