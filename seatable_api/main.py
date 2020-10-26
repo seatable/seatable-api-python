@@ -1,5 +1,4 @@
 import io
-import os
 import json
 from datetime import datetime
 from urllib import parse
@@ -448,24 +447,24 @@ class SeaTableAPI(object):
         response = requests.get(download_link)
         if response.status_code != 200:
             raise Exception('download file error')
-        file_name = parse.unquote(path).strip('/').split('/')[-1]
-        with open(os.path.join(save_path, file_name), 'wb') as f:
+        with open(save_path, 'wb') as f:
             f.write(response.content)
 
     def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type=None, replace=False):
         """
-        relateive_path: relative path for upload, if None, default
-        file_type: if relative is None, file type must in ['image', 'file'], default file
+        relateive_path: relative path for upload, if None, default {file_type}s/{date of this month} eg: files/2020-09
+        file_type: if relative is None, file type must in ['image', 'file'], default 'file'
+        return: info dict of uploaded file
         """
         upload_link_dict = self.get_file_upload_link()
         parent_dir = upload_link_dict['parent_path']
         upload_link = upload_link_dict['upload_link'] + '?ret-json=1'
         if not relative_path:
-            if file_type not in ['image', 'file']:
+            if file_type and file_type not in ['image', 'file']:
                 raise Exception('relative or file_type invalid.')
-            else:
+            if not file_type:
                 file_type = 'file'
-                relative_path = file_type + 's/' + str(datetime.today())[:7]
+            relative_path = '%ss/%s' % (file_type, str(datetime.today())[:7])
         else:
             relative_path = relative_path.strip('/')
         response = requests.post(upload_link, data={
@@ -492,16 +491,21 @@ class SeaTableAPI(object):
         }
 
     def upload_local_file(self, file_path, name=None, relative_path=None, file_type=None, replace=False):
+        """
+        relateive_path: relative path for upload, if None, default {file_type}s/{date of today}, eg: files/2020-09
+        file_type: if relative is None, file type must in ['image', 'file'], default 'file'
+        return: info dict of uploaded file
+        """
         if file_type not in ['image', 'file']:
             raise Exception('file_type invalid.')
         if not name:
             name = file_path.strip('/').split('/')[-1]
         if not relative_path:
-            if file_type not in ['image', 'file']:
+            if file_type and file_type not in ['image', 'file']:
                 raise Exception('relative or file_type invalid.')
-            else:
+            if not file_type:
                 file_type = 'file'
-                relative_path = file_type + 's/' + str(datetime.today())[:7]
+            relative_path = '%ss/%s' % (file_type, str(datetime.today())[:7])
         else:
             relative_path = relative_path.strip('/')
         upload_link_dict = self.get_file_upload_link()
