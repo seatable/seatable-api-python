@@ -1,4 +1,4 @@
-from .main import SeaTableAPI
+from .main import SeaTableAPI, Account
 from .context import context
 
 Base = SeaTableAPI

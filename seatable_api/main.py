@@ -533,3 +533,84 @@ class SeaTableAPI(object):
             'name': d.get('name'),
             'url': url
         }
+
+class Account(object):
+    def __init__(self, login_name, password, server_url):
+        self.login_name = login_name
+        self.username = None
+        self.password = password
+        self.server_url = server_url.strip().strip('/')
+        self.token = None
+
+    def __str__(self):
+        return 'Account Object [%s]' % (self.login_name)
+
+    def _get_api_token_url(self):
+        return '%s/api2/auth-token/' % (self.server_url,)
+
+    def _list_workspaces_url(self):
+        return '%s/api/v2.1/workspaces/' % (self.server_url,)
+
+    def _add_base_url(self):
+        return '%s/api/v2.1/dtables/' % (self.server_url,)
+
+    def _get_account_info_url(self):
+        return '%s/api2/account/info/' % (self.server_url,)
+
+    def _get_copy_dtable_url(self):
+        return '%s/api/v2.1/dtable-copy/' % (self.server_url,)
+
+    def _get_temp_api_token_url(self, workspace_id, name):
+        return '%(server_url)s/api/v2.1/workspace/%(workspace_id)s/dtable/%(name)s/temp-api-token/' % {
+            'server_url': self.server_url,
+            'workspace_id': workspace_id,
+            'name': name
+        }
+
+    @property
+    def token_headers(self):
+        return {
+            'Authorization': 'Token %s' % (self.token,)
+        }
+
+    def auth(self):
+        response = requests.post(self._get_api_token_url(), data={
+            'username': self.login_name,
+            'password': self.password
+        })
+        data = parse_response(response)
+        self.token = data.get('token')
+
+    def load_account_info(self):
+        response = requests.get(self._get_account_info_url(), headers=self.token_headers)
+        self.username = parse_response(response).get('email')
+
+    def list_workspaces(self):
+        response = requests.get(self._list_workspaces_url(), headers=self.token_headers)
+        return parse_response(response)
+
+    def add_base(self, name, group_id=None):
+        if not group_id:
+            self.load_account_info()  # load username for owner
+            owner = self.username
+        else:
+            owner = '%s@seafile_group' % (group_id,)
+        response = requests.post(self._add_base_url(), data={
+            'name': name,
+            'owner': owner
+        }, headers=self.token_headers)
+        return parse_response(response).get('table')
+
+    def copy_base(self, src_workspace_id, base_name, dst_workspace_id):
+        response = requests.post(self._get_copy_dtable_url(), data={
+            'src_workspace_id': src_workspace_id,
+            'name': base_name,
+            'dst_workspace_id': dst_workspace_id
+        }, headers=self.token_headers)
+        return parse_response(response).get('dtable')
+
+    def get_base(self, workspace_id, base_name):
+        response = requests.get(self._get_temp_api_token_url(workspace_id, base_name), headers=self.token_headers)
+        api_token = parse_response(response).get('api_token')
+        base = SeaTableAPI(api_token, self.server_url)
+        return base
