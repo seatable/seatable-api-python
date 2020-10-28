@@ -480,8 +480,8 @@ class SeaTableAPI(object):
             'workspace_id': self.workspace_id,
             'dtable_uuid': str(UUID(self.dtable_uuid)),
             'file_type': file_type,
-            'relative_path': relative_path.strip('/'),
-            'filename': d.get('name', name)
+            'relative_path': parse.quote(relative_path.strip('/')),
+            'filename': parse.quote(d.get('name', name))
         }
         return {
             'type': file_type,
@@ -524,8 +524,8 @@ class SeaTableAPI(object):
             'workspace_id': self.workspace_id,
             'dtable_uuid': str(UUID(self.dtable_uuid)),
             'file_type': file_type,
-            'relative_path': relative_path.strip('/'),
-            'filename': d.get('name', name)
+            'relative_path': parse.quote(relative_path.strip('/')),
+            'filename': parse.quote(d.get('name', name))
         }
         return {
             'type': file_type,
