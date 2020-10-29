@@ -589,12 +589,25 @@ class Account(object):
         response = requests.get(self._list_workspaces_url(), headers=self.token_headers)
         return parse_response(response)
 
-    def add_base(self, name, group_id=None):
-        if not group_id:
-            self.load_account_info()  # load username for owner
+    def add_base(self, name, workspace_id=None):
+        owner = None
+        if not workspace_id:
+            if not self.username:
+                self.load_account_info()  # load username for owner
             owner = self.username
         else:
-            owner = '%s@seafile_group' % (group_id,)
+            workspace_list = self.list_workspaces()['workspace_list']
+            for w in workspace_list:
+                if w.get('id') == workspace_id and w.get('group_id'):
+                    owner = '%s@seafile_group' % w['group_id']
+                    break
+                if w.get('id') == workspace_id and w.get('owner_type') == 'Personal':
+                    if not self.username:
+                        self.load_account_info()  # load username for owner
+                    owner = self.username
+                    break
+        if not owner:
+            raise Exception('workspace_id invalid.')
         response = requests.post(self._add_base_url(), data={
             'name': name,
             'owner': owner
