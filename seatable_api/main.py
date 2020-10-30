@@ -622,8 +622,9 @@ class Account(object):
         }, headers=self.token_headers)
         return parse_response(response).get('dtable')
 
-    def get_base(self, workspace_id, base_name):
+    def get_base(self, workspace_id, base_name, with_socket_io=False):
         response = requests.get(self._get_temp_api_token_url(workspace_id, base_name), headers=self.token_headers)
         api_token = parse_response(response).get('api_token')
         base = SeaTableAPI(api_token, self.server_url)
+        base.auth(with_socket_io=with_socket_io)
         return base
