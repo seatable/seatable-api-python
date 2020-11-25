@@ -82,6 +82,9 @@ class SeaTableAPI(object):
     def _batch_row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-append-rows/'
 
+    def _batch_delete_row_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-delete-rows/'
+
     def _filtered_rows_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
@@ -188,6 +191,24 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_id': row_id,
         }
+        response = requests.delete(url, json=json_data, headers=self.headers)
+        return parse_response(response)
+
+    def batch_delete_rows(self, table_name, row_ids, deleted_rows=None, upper_row_ids=None):
+        """
+        :param table_name: str
+        :param row_ids: list
+        :param deleted_rows: list
+        :param upper_row_ids: list
+        """
+        url = self._batch_delete_row_server_url()
+        json_data = {
+            'table_name': table_name,
+            'row_ids': row_ids,
+        }
+        if deleted_rows and upper_row_ids:
+            json_data['deleted_rows'] = deleted_rows
+            json_data['upper_row_ids'] = upper_row_ids
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
