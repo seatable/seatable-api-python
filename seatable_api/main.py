@@ -82,6 +82,9 @@ class SeaTableAPI(object):
     def _batch_row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-append-rows/'
 
+    def _batch_delete_row_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-delete-rows/'
+
     def _filtered_rows_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/filtered-rows/'
 
@@ -191,6 +194,19 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers)
         return parse_response(response)
 
+    def batch_delete_rows(self, table_name, row_ids):
+        """
+        :param table_name: str
+        :param row_ids: list
+        """
+        url = self._batch_delete_row_server_url()
+        json_data = {
+            'table_name': table_name,
+            'row_ids': row_ids,
+        }
+        response = requests.delete(url, json=json_data, headers=self.headers)
+        return parse_response(response)
+
     def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
         """
         :param table_name: str
@@ -213,7 +229,7 @@ class SeaTableAPI(object):
                     raise ValueError('filters invalid.')
 
         if filter_conjunction not in ['And', 'Or']:
-            raise ValueError('filter_conjunction invalud, filter_conjunction must be '
+            raise ValueError('filter_conjunction invalid, filter_conjunction must be '
                              '"And" or "Or"')
 
         params = {
@@ -452,7 +468,7 @@ class SeaTableAPI(object):
 
     def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type=None, replace=False):
         """
-        relateive_path: relative path for upload, if None, default {file_type}s/{date of this month} eg: files/2020-09
+        relative_path: relative path for upload, if None, default {file_type}s/{date of this month} eg: files/2020-09
         file_type: if relative is None, file type must in ['image', 'file'], default 'file'
         return: info dict of uploaded file
         """
@@ -492,7 +508,7 @@ class SeaTableAPI(object):
 
     def upload_local_file(self, file_path, name=None, relative_path=None, file_type=None, replace=False):
         """
-        relateive_path: relative path for upload, if None, default {file_type}s/{date of today}, eg: files/2020-09
+        relative_path: relative path for upload, if None, default {file_type}s/{date of today}, eg: files/2020-09
         file_type: if relative is None, file type must in ['image', 'file'], default 'file'
         return: info dict of uploaded file
         """
