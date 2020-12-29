@@ -9,6 +9,8 @@ import requests
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import connect_socket_io
+from .query import QuerySet
+from .grammar import parse_sql
 
 
 def parse_headers(token):
@@ -223,8 +225,8 @@ class SeaTableAPI(object):
         if len(filters) != len([f for f in filters if isinstance(f, dict)]):
             raise ValueError('filters invalid.')
 
-        for filter in filters:
-            for key in filter.keys():
+        for f in filters:
+            for key in f.keys():
                 if key not in ROW_FILTER_KEYS:
                     raise ValueError('filters invalid.')
 
@@ -549,6 +551,20 @@ class SeaTableAPI(object):
             'name': d.get('name'),
             'url': url
         }
+
+    def filter(self, table_name, view_name=None, sql=None):
+        """
+        :param table_name: str
+        :param view_name: str
+        :param sql: str
+        :return: queryset
+        """
+        conditions = parse_sql(sql)
+        raw_rows = self.list_rows(table_name, view_name)
+        raw_columns = self.list_columns(table_name, view_name)
+        queryset = QuerySet(raw_rows, raw_columns, conditions)
+        return queryset
+
 
 class Account(object):
     def __init__(self, login_name, password, server_url):
