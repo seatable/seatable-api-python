@@ -10,40 +10,19 @@ class Lexer(object):
 
     # List of token names. This is always required
     tokens = (
-        'SELECT',
-        'WHERE',
-        'AND',
-        'OR',
-
-        'TERMINATOR',
-        'ALL_COLUMNS',
-        'SPLIT',
-        'LBORDER',
-        'RBORDER',
-
-        'EQUAL',
-        'GTE',
-        'GT',
-        'LTE',
-        'LT',
-
-        'QUOTE_STRING',
-        'STRING',
+        'SELECT', 'WHERE',
+        'TERMINATOR', 'ALL_COLUMNS', 'SPLIT',
+        'LBORDER', 'RBORDER',
+        'AND', 'OR',
+        'EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'QUOTE_STRING', 'STRING',
     )
 
     reserved = {
-        'select': 'SELECT',  # r'(select|SELECT|Select)'
-        'SELECT': 'SELECT',
-        'Select': 'SELECT',
-        'where': 'WHERE',  # r'(where|WHERE|Where)'
-        'WHERE': 'WHERE',
-        'Where': 'WHERE',
-        'and': 'AND',  # r'(and|AND|And)'
-        'AND': 'AND',
-        'And': 'AND',
-        'or': 'OR',  # r'(or|OR|Or)'
-        'OR': 'OR',
-        'Or': 'OR',
+        'select': 'SELECT', 'SELECT': 'SELECT', 'Select': 'SELECT',
+        'where': 'WHERE', 'WHERE': 'WHERE', 'Where': 'WHERE',
+        'and': 'AND', 'AND': 'AND', 'And': 'AND',
+        'or': 'OR', 'OR': 'OR', 'Or': 'OR',
     }
 
     # Regular expression rules for simple tokens
@@ -163,17 +142,9 @@ class WhereParser(object):
 
     # List of token names. This is always required
     tokens = (
-        'AND',
-        'OR',
-
-        'EQUAL',
-        'GTE',
-        'GT',
-        'LTE',
-        'LT',
-
-        'QUOTE_STRING',
-        'STRING',
+        'AND', 'OR',
+        'EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'QUOTE_STRING', 'STRING',
     )
 
     def p_merge(self, p):
@@ -238,7 +209,8 @@ class SelectParser(object):
         else:
             self._check_columns_exists(selected_columns)
             modified_rows = []
-            modified_columns = [self.raw_columns_map[column] for column in selected_columns]
+            modified_columns = [
+                self.raw_columns_map[column]for column in selected_columns]
             for row in self.raw_rows:
                 data = {'_id': row['_id']}
                 for column in selected_columns:
@@ -257,38 +229,38 @@ class QuerySet(object):
         self.columns = []
         self._execute(sql)
 
+    def _execute_sql(self, raw_rows, raw_columns, sql):
+        columns_map = {column['name']: column for column in raw_columns}
+        where_index = sql.lower().index('where')
+        where_text = sql[where_index + len('where'):].rstrip(';')
+        select_text = sql[len('select'): where_index]
+        # main
+        rows = WhereParser().parse(raw_rows, columns_map, where_text)
+        rows, columns = SelectParser().parse(rows, columns_map, select_text)
+        return rows, columns
+
     def _execute(self, sql, clone=None):
-        if clone:
-            raw_rows = clone.raw_rows
-            raw_columns = clone.raw_columns
+        if not clone:
+            rows, columns = self.raw_rows, self.raw_columns
+            if sql and self.raw_rows and self.raw_columns:
+                rows, columns = self._execute_sql(
+                    self.raw_rows, self.raw_columns, sql)
+            self.rows = rows
+            self.columns = columns
         else:
-            raw_rows = self.raw_rows
-            raw_columns = self.raw_columns
-
-        if sql and raw_rows and raw_columns:
-            columns_map = {column['name']: column for column in raw_columns}
-            where_index = sql.lower().index('where')
-            where_text = sql[where_index + len('where'):].rstrip(';')
-            select_text = sql[len('select'): where_index]
-            # main
-            rows = WhereParser().parse(
-                raw_rows, columns_map, where_text)
-            rows, columns = SelectParser().parse(
-                rows, columns_map, select_text)
-
-            if clone:
-                clone.rows = rows
-                clone.columns = columns
-            else:
-                self.rows = rows
-                self.columns = columns
-        else:
-            pass
-
+            rows, columns = clone.raw_rows, clone.raw_columns
+            if sql and clone.raw_rows and clone.raw_columns:
+                rows, columns = self._execute_sql(
+                    clone.raw_rows, clone.raw_columns, sql)
+            clone.rows = rows
+            clone.columns = columns
 
     def _clone(self, sql):
         clone = self.__class__(self.rows, self.columns, sql)
         return clone
+
+    def __str__(self):
+        return '<SeaTable Queryset "' + str(self.sql) + '">'
 
     def __iter__(self):
         return iter(self.rows)
