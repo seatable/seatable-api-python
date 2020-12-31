@@ -9,7 +9,7 @@ import requests
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import connect_socket_io
-from .query import QuerySet
+from .query import QuerySet, ply_lexer
 from .grammar import parse_sql
 
 
@@ -559,10 +559,10 @@ class SeaTableAPI(object):
         :param sql: str
         :return: queryset
         """
-        conditions = parse_sql(sql)
+        ply_lexer.check(sql)
         raw_rows = self.list_rows(table_name, view_name)
         raw_columns = self.list_columns(table_name, view_name)
-        queryset = QuerySet(raw_rows, raw_columns, conditions)
+        queryset = QuerySet(raw_rows, raw_columns, sql)
         return queryset
 
 
