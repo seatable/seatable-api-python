@@ -3,60 +3,48 @@ import copy
 from ply import lex, yacc
 
 
-ply_tokens = (
-    'SELECT',
-    'WHERE',
-    'AND',
-    'OR',
-
-    'TERMINATOR',
-    'ALL_COLUMNS',
-    'SPLIT',
-    'LBORDER',
-    'RBORDER',
-
-    'EQUAL',
-    'GTE',
-    'GT',
-    'LTE',
-    'LT',
-
-    'QUOTE_STRING',
-    'STRING',
-)
-
-
 class Lexer(object):
 
     def __init__(self):
         self.lexer = lex.lex(module=self)
 
-    def check(self, text):
-        if not text:
-            return
-        self.lexer.input(text)
-
     # List of token names. This is always required
-    tokens = ply_tokens
+    tokens = (
+        'SELECT',
+        'WHERE',
+        'AND',
+        'OR',
+
+        'TERMINATOR',
+        'ALL_COLUMNS',
+        'SPLIT',
+        'LBORDER',
+        'RBORDER',
+
+        'EQUAL',
+        'GTE',
+        'GT',
+        'LTE',
+        'LT',
+
+        'QUOTE_STRING',
+        'STRING',
+    )
 
     reserved = {
-        'select': 'SELECT',
+        'select': 'SELECT',  # r'(select|SELECT|Select)'
         'SELECT': 'SELECT',
         'Select': 'SELECT',
-        'where': 'WHERE',
+        'where': 'WHERE',  # r'(where|WHERE|Where)'
         'WHERE': 'WHERE',
         'Where': 'WHERE',
-        'and': 'AND',
+        'and': 'AND',  # r'(and|AND|And)'
         'AND': 'AND',
         'And': 'AND',
-        'or': 'OR',
+        'or': 'OR',  # r'(or|OR|Or)'
         'OR': 'OR',
         'Or': 'OR',
     }
-    # t_SELECT = r'(select|SELECT|Select)'
-    # t_WHERE = r'(where|WHERE|Where)'
-    # t_AND = r'(and|AND|And)'
-    # t_OR = r'(or|OR|Or)'
 
     # Regular expression rules for simple tokens
     t_TERMINATOR = r';'
@@ -95,88 +83,212 @@ class Lexer(object):
         raise ValueError('Illegal character!', t.value[0])
 
 
-# Lexer instance
-ply_lexer = Lexer()
-
-
-class SelectParser(object):
+class WhereParser(object):
 
     def __init__(self):
         self.yaccer = yacc.yacc(module=self)
 
     # Parse
-    def parse(self, raw_rows, raw_columns_name_list, select_text):
-        self.selected_columns = []
-        self.filtered_rows = []
+    def parse(self, raw_rows, raw_columns_map, where_text):
         self.raw_rows = copy.deepcopy(raw_rows)
-        self.raw_columns_name_list = raw_columns_name_list
+        self.raw_columns_map = raw_columns_map
+        # main
+        rows = self.yaccer.parse(where_text, lexer=self.lexer)
+        return rows
 
-        # parse selected_columns
-        self.yaccer.parse(select_text, lexer=self.lexer)
-        self._filter()
-        return self.filtered_rows
+    def _check_column_exists(self, column):
+        if column not in self.raw_columns_map:
+            raise ValueError('Column not found!', column)
 
-    def _check_selected_columns(self):
-        self.selected_columns = list(set(self.selected_columns))
-        for column_name in self.selected_columns:
-            if column_name not in self.raw_columns_name_list:
-                raise ValueError('Column not found!', column_name)
+    def _exchange_value(self, column_type, value):
+        if column_type == 'number':
+            if '.' in value:
+                value = float(value)
+            else:
+                value = int(value)
+        return value
 
-    def _filter(self):
-        if '*' in self.selected_columns or not self.selected_columns:
-            self.filtered_rows = self.raw_rows
-        else:
-            self._check_selected_columns()
-            filtered_rows = []
+    def _merge(self, left_rows, condition, right_rows):
+        merged_rows = []
+        left_rows_id_list = [row['_id'] for row in left_rows]
+
+        if condition.lower() == 'and':
+            for row in right_rows:
+                if row['_id'] in left_rows_id_list:
+                    merged_rows.append(row)
+
+        elif condition.lower() == 'or':
+            merged_rows = left_rows
+            for row in right_rows:
+                if row['_id'] not in left_rows_id_list:
+                    merged_rows.append(row)
+
+        return merged_rows
+
+    def _filter(self, column, condition, value):
+        self._check_column_exists(column)
+        filtered_rows = []
+        column_type = self.raw_columns_map[column].get('type')
+        value = self._exchange_value(column_type, value)
+
+        if condition == '=':
             for row in self.raw_rows:
-                data = {'_id': row['_id']}
-                for column in self.selected_columns:
-                    data[column] = row.get(column)
-                filtered_rows.append(data)
-            self.filtered_rows = filtered_rows
+                if row.get(column) == value:
+                    filtered_rows.append(row)
 
-    lexer = ply_lexer.lexer
+        elif condition == '>=':
+            for row in self.raw_rows:
+                if row.get(column) >= value:
+                    filtered_rows.append(row)
+
+        elif condition == '>':
+            for row in self.raw_rows:
+                if row.get(column) > value:
+                    filtered_rows.append(row)
+
+        elif condition == '<=':
+            for row in self.raw_rows:
+                if row.get(column) <= value:
+                    filtered_rows.append(row)
+
+        elif condition == '<':
+            for row in self.raw_rows:
+                if row.get(column) < value:
+                    filtered_rows.append(row)
+
+        return filtered_rows
+
+    # Lexer
+    lexer = Lexer().lexer
 
     # List of token names. This is always required
-    tokens = ply_tokens
+    tokens = (
+        'AND',
+        'OR',
 
-    # Do nothing
-    def p_column_select(self, p):
-        """expression : SELECT column
+        'EQUAL',
+        'GTE',
+        'GT',
+        'LTE',
+        'LT',
+
+        'QUOTE_STRING',
+        'STRING',
+    )
+
+    def p_merge(self, p):
+        """merge : filter AND filter
+                 | filter OR filter
+                 | merge AND filter
+                 | merge OR filter
+                 | filter
         """
-        pass
+        if len(p.slice) > 2:
+            p[0] = self._merge(p[1], p[2], p[3])
+        else:
+            p[0] = p[1]
 
-    # Do nothing
-    def p_column_split(self, p):
-        """column : column SPLIT column
+    def p_filter(self, p):
+        """filter : factor EQUAL factor
+                  | factor GTE factor
+                  | factor GT factor
+                  | factor LTE factor
+                  | factor LT factor
         """
-        pass
+        p[0] = self._filter(p[1], p[2], p[3])
 
-    # Parse selected columns
-    def p_column(self, p):
-        """column : ALL_COLUMNS
-                  | QUOTE_STRING
+    def p_factor(self, p):
+        """factor : QUOTE_STRING
                   | STRING
         """
-        self.selected_columns.append(p[1])
+        p[0] = p[1]
 
     # Error rule for syntax errors
     def p_error(self, p):
         raise ValueError('Syntax error in input!', p.value)
 
 
-# SelectParser instance
-select_parser = SelectParser()
+class SelectParser(object):
+
+    # Parse
+    def parse(self, raw_rows, raw_columns_map, select_text):
+        self.raw_rows = copy.deepcopy(raw_rows)
+        self.raw_columns_map = raw_columns_map
+        # main
+        selected_columns = self._parse_select_text(select_text)
+        rows, columns = self._modify(selected_columns)
+        return rows, columns
+
+    def _parse_select_text(self, select_text):
+        selected_columns = []
+        for column in select_text.split(','):
+            column = column.strip(' ').strip("'")
+            if column:
+                selected_columns.append(column)
+        return selected_columns
+
+    def _check_columns_exists(self, selected_columns):
+        for column in selected_columns:
+            if column not in self.raw_columns_map:
+                raise ValueError('Column not found!', column)
+
+    def _modify(self, selected_columns):
+        if '*' in selected_columns or not selected_columns:
+            return self.raw_rows, self.raw_columns_map.values()
+        else:
+            self._check_columns_exists(selected_columns)
+            modified_rows = []
+            modified_columns = [self.raw_columns_map[column] for column in selected_columns]
+            for row in self.raw_rows:
+                data = {'_id': row['_id']}
+                for column in selected_columns:
+                    data[column] = row.get(column)
+                modified_rows.append(data)
+            return modified_rows, modified_columns
 
 
 class QuerySet(object):
 
     def __init__(self, raw_rows, raw_columns, sql):
-        self.rows = raw_rows
         self.raw_rows = raw_rows
         self.raw_columns = raw_columns
-        self.raw_columns_name_list = [column['name'] for column in raw_columns]
+        self.sql = sql
+        self.rows = []
+        self.columns = []
         self._execute(sql)
+
+    def _execute(self, sql, clone=None):
+        if clone:
+            raw_rows = clone.raw_rows
+            raw_columns = clone.raw_columns
+        else:
+            raw_rows = self.raw_rows
+            raw_columns = self.raw_columns
+
+        if sql and raw_rows and raw_columns:
+            columns_map = {column['name']: column for column in raw_columns}
+            where_index = sql.lower().index('where')
+            where_text = sql[where_index + len('where'):].rstrip(';')
+            select_text = sql[len('select'): where_index]
+            # main
+            rows = WhereParser().parse(
+                raw_rows, columns_map, where_text)
+            rows, columns = SelectParser().parse(
+                rows, columns_map, select_text)
+
+            if clone:
+                clone.rows = rows
+                clone.columns = columns
+            else:
+                self.rows = rows
+                self.columns = columns
+        else:
+            pass
+
+
+    def _clone(self, sql):
+        clone = self.__class__(self.rows, self.columns, sql)
+        return clone
 
     def __iter__(self):
         return iter(self.rows)
@@ -184,18 +296,10 @@ class QuerySet(object):
     def __len__(self):
         return len(self.rows)
 
-    def _execute(self, sql):
-        if sql and self.rows:
-            where_index = sql.lower().index('where')
-            select_text = sql[:where_index]
-            where_text = sql[where_index:]
-            rows = select_parser.parse(self.rows, self.raw_columns_name_list, select_text)
-            self.rows = rows
-        else:
-            pass
-
     def filter(self, sql=None):
-        self._execute(sql)
+        clone = self._clone(sql)
+        self._execute(sql, clone)
+        return clone
 
     def first(self):
         if self.rows:
@@ -211,3 +315,6 @@ class QuerySet(object):
 
     def count(self):
         return len(self.rows)
+
+    def exists(self):
+        return len(self.rows) > 0
