@@ -555,7 +555,7 @@ class SeaTableAPI(object):
             'url': url
         }
 
-    def filter(self, table_name, conditions=''):
+    def filter(self, table_name, conditions='', view_name=None):
         """
         :param table_name: str
         :param conditions: str
@@ -564,8 +564,8 @@ class SeaTableAPI(object):
         base = self._clone()
         base.auth()
         queryset = QuerySet(base, table_name)
-        queryset.raw_rows = self.list_rows(table_name)
-        queryset.raw_columns = self.list_columns(table_name)
+        queryset.raw_rows = self.list_rows(table_name, view_name)
+        queryset.raw_columns = self.list_columns(table_name, view_name)
         queryset.conditions = conditions
         queryset._execute_conditions()
         return queryset

@@ -17,8 +17,8 @@ class Lexer(object):
     )
 
     reserved = {
-        'and': 'AND', 'AND': 'AND', 'And': 'AND',
-        'or': 'OR', 'OR': 'OR', 'Or': 'OR',
+        'and': 'AND',
+        'or': 'OR',
     }
 
     # Regular expression rules for simple tokens
@@ -195,6 +195,12 @@ class QuerySet(object):
 
     def __len__(self):
         return len(self.rows)
+
+    def __getitem__(self, index):
+        return self.rows[index]
+
+    def __bool__(self):
+        return len(self.rows) > 0
 
     def _clone(self):
         clone = self.__class__(self.base, self.table_name)
