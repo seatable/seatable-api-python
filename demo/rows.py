@@ -70,16 +70,29 @@ def queryset_filter():
     base.auth()
 
     table_name = 'Table1'
-    view_name = 'View1'
 
-    male_sql = """SELECT * WHERE age > 18 and gender='male';"""
-    male_queryset = base.filter(table_name, view_name, male_sql)
+    queryset = base.filter(table_name, "age>18 and gender='male'")
 
-    elder_sql = """SELECT name, age WHERE age > 70;"""
-    elder_queryset = male_queryset.filter(elder_sql)
+    copy_queryset = queryset.all()
 
-    for item in elder_queryset:
-        print(item)
+    tony_row = queryset.get("'first name'='tony'")
+
+    first_row = queryset.first()
+
+    last_row = queryset.last()
+
+    count = queryset.count()
+
+    exists = queryset.exists()
+
+    elder_queryset = queryset.filter("age > 70")
+    for row in elder_queryset:
+        print(row)
+
+    update_row_data = {'paid': True}
+    updated_rows = elder_queryset.update(update_row_data)
+
+    deleted_count = elder_queryset.delete()
 
 
 if __name__ == '__main__':

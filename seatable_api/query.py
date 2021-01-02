@@ -10,29 +10,22 @@ class Lexer(object):
 
     # List of token names. This is always required
     tokens = (
-        'SELECT', 'WHERE',
-        'TERMINATOR', 'ALL_COLUMNS', 'SPLIT',
         'LBORDER', 'RBORDER',
         'AND', 'OR',
-        'EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
         'QUOTE_STRING', 'STRING',
     )
 
     reserved = {
-        'select': 'SELECT', 'SELECT': 'SELECT', 'Select': 'SELECT',
-        'where': 'WHERE', 'WHERE': 'WHERE', 'Where': 'WHERE',
         'and': 'AND', 'AND': 'AND', 'And': 'AND',
         'or': 'OR', 'OR': 'OR', 'Or': 'OR',
     }
 
     # Regular expression rules for simple tokens
-    t_TERMINATOR = r';'
-    t_ALL_COLUMNS = r'\*'
-    t_SPLIT = r','
     t_LBORDER = r'\('
     t_RBORDER = r'\)'
-
     t_EQUAL = r'='
+    t_NOT_EQUAL = r'!='
     t_GTE = r'>='
     t_GT = r'>'
     t_LTE = r'<='
@@ -44,7 +37,7 @@ class Lexer(object):
         return t
 
     def t_STRING(self, t):
-        r'[^=|>|<|\*|/(|/)|\s|\^|\/|;|,]+'
+        r'[^=|!|>|<|/(|/)|\s]+'
         t.type = self.reserved.get(t.value, 'STRING')
         return t
 
@@ -62,17 +55,19 @@ class Lexer(object):
         raise ValueError('Illegal character!', t.value[0])
 
 
-class WhereParser(object):
+class ConditionsParser(object):
 
     def __init__(self):
         self.yaccer = yacc.yacc(module=self)
+        self.lexer = Lexer().lexer
 
     # Parse
-    def parse(self, raw_rows, raw_columns_map, where_text):
-        self.raw_rows = copy.deepcopy(raw_rows)
-        self.raw_columns_map = raw_columns_map
+    def parse(self, raw_rows, raw_columns, conditions):
+        self.raw_rows = raw_rows
+        self.raw_columns = raw_columns
+        self.raw_columns_map = {column['name']: column for column in raw_columns}
         # main
-        rows = self.yaccer.parse(where_text, lexer=self.lexer)
+        rows = self.yaccer.parse(conditions, lexer=self.lexer)
         return rows
 
     def _check_column_exists(self, column):
@@ -115,6 +110,11 @@ class WhereParser(object):
                 if row.get(column) == value:
                     filtered_rows.append(row)
 
+        elif condition == '!=':
+            for row in self.raw_rows:
+                if row.get(column) != value:
+                    filtered_rows.append(row)
+
         elif condition == '>=':
             for row in self.raw_rows:
                 if row.get(column) >= value:
@@ -137,13 +137,10 @@ class WhereParser(object):
 
         return filtered_rows
 
-    # Lexer
-    lexer = Lexer().lexer
-
     # List of token names. This is always required
     tokens = (
         'AND', 'OR',
-        'EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
         'QUOTE_STRING', 'STRING',
     )
 
@@ -161,6 +158,7 @@ class WhereParser(object):
 
     def p_filter(self, p):
         """filter : factor EQUAL factor
+                  | factor NOT_EQUAL factor
                   | factor GTE factor
                   | factor GT factor
                   | factor LTE factor
@@ -179,88 +177,18 @@ class WhereParser(object):
         raise ValueError('Syntax error in input!', p.value)
 
 
-class SelectParser(object):
-
-    # Parse
-    def parse(self, raw_rows, raw_columns_map, select_text):
-        self.raw_rows = copy.deepcopy(raw_rows)
-        self.raw_columns_map = raw_columns_map
-        # main
-        selected_columns = self._parse_select_text(select_text)
-        rows, columns = self._modify(selected_columns)
-        return rows, columns
-
-    def _parse_select_text(self, select_text):
-        selected_columns = []
-        for column in select_text.split(','):
-            column = column.strip(' ').strip("'")
-            if column:
-                selected_columns.append(column)
-        return selected_columns
-
-    def _check_columns_exists(self, selected_columns):
-        for column in selected_columns:
-            if column not in self.raw_columns_map:
-                raise ValueError('Column not found!', column)
-
-    def _modify(self, selected_columns):
-        if '*' in selected_columns or not selected_columns:
-            return self.raw_rows, self.raw_columns_map.values()
-        else:
-            self._check_columns_exists(selected_columns)
-            modified_rows = []
-            modified_columns = [
-                self.raw_columns_map[column]for column in selected_columns]
-            for row in self.raw_rows:
-                data = {'_id': row['_id']}
-                for column in selected_columns:
-                    data[column] = row.get(column)
-                modified_rows.append(data)
-            return modified_rows, modified_columns
-
-
 class QuerySet(object):
 
-    def __init__(self, raw_rows, raw_columns, sql):
-        self.raw_rows = raw_rows
-        self.raw_columns = raw_columns
-        self.sql = sql
+    def __init__(self, base, table_name):
+        self.base = base
+        self.table_name = table_name
+        self.raw_rows = []
+        self.raw_columns = []
+        self.conditions = ''
         self.rows = []
-        self.columns = []
-        self._execute(sql)
-
-    def _execute_sql(self, raw_rows, raw_columns, sql):
-        columns_map = {column['name']: column for column in raw_columns}
-        where_index = sql.lower().index('where')
-        where_text = sql[where_index + len('where'):].rstrip(';')
-        select_text = sql[len('select'): where_index]
-        # main
-        rows = WhereParser().parse(raw_rows, columns_map, where_text)
-        rows, columns = SelectParser().parse(rows, columns_map, select_text)
-        return rows, columns
-
-    def _execute(self, sql, clone=None):
-        if not clone:
-            rows, columns = self.raw_rows, self.raw_columns
-            if sql and self.raw_rows and self.raw_columns:
-                rows, columns = self._execute_sql(
-                    self.raw_rows, self.raw_columns, sql)
-            self.rows = rows
-            self.columns = columns
-        else:
-            rows, columns = clone.raw_rows, clone.raw_columns
-            if sql and clone.raw_rows and clone.raw_columns:
-                rows, columns = self._execute_sql(
-                    clone.raw_rows, clone.raw_columns, sql)
-            clone.rows = rows
-            clone.columns = columns
-
-    def _clone(self, sql):
-        clone = self.__class__(self.rows, self.columns, sql)
-        return clone
 
     def __str__(self):
-        return '<SeaTable Queryset "' + str(self.sql) + '">'
+        return 'SeaTable Queryset [ %s ]' % self.table_name
 
     def __iter__(self):
         return iter(self.rows)
@@ -268,24 +196,102 @@ class QuerySet(object):
     def __len__(self):
         return len(self.rows)
 
-    def filter(self, sql=None):
-        clone = self._clone(sql)
-        self._execute(sql, clone)
+    def _clone(self):
+        clone = self.__class__(self.base, self.table_name)
         return clone
 
+    def _execute_conditions(self):
+        if self.conditions and self.raw_rows and self.raw_columns:
+            # main
+            conditions_parser = ConditionsParser()
+            rows = conditions_parser.parse(
+                copy.deepcopy(self.raw_rows),
+                copy.deepcopy(self.raw_columns),
+                copy.copy(self.conditions),
+            )
+            self.rows = rows
+        else:
+            self.rows = self.raw_rows
+
+    def filter(self, conditions=''):
+        """Performs the query and returns a new QuerySet instance.
+        :param conditions: str
+        :return: queryset
+        """
+        clone = self._clone()
+        clone.raw_rows = copy.deepcopy(self.rows)
+        clone.raw_columns = copy.deepcopy(self.raw_columns)
+        clone.conditions = conditions
+        clone._execute_conditions()
+        return clone
+
+    def get(self, conditions=''):
+        """Performs the query and returns a single row matching the given keyword arguments.
+        :param conditions: str
+        :return row: dict
+        """
+        clone = self._clone()
+        clone.raw_rows = copy.deepcopy(self.rows)
+        clone.raw_columns = copy.deepcopy(self.raw_columns)
+        clone.conditions = conditions
+        clone._execute_conditions()
+        if len(clone.rows) == 0:
+            return None
+        else:
+            return clone.rows[0]
+
+    def all(self):
+        """Returns a new QuerySet that is a copy of the current one.
+        :return: queryset
+        """
+        clone = self._clone()
+        clone.raw_rows = copy.deepcopy(self.raw_rows)
+        clone.raw_columns = copy.deepcopy(self.raw_columns)
+        clone.conditions = copy.copy(self.conditions)
+        clone.rows = copy.deepcopy(self.rows)
+        return clone
+
+    def update(self, row_data):
+        """Updates all elements in the current QuerySet, setting all the given fields to the appropriate values.
+        :param row_data: dict
+        :return rows: list
+        """
+        for row in self.rows:
+            response = self.base.update_row(self.table_name, row['_id'], row_data)
+            row.update(row_data)
+        return self.rows
+
+    def delete(self):
+        """Deletes the rows in the current QuerySet.
+        :return: int
+        """
+        row_ids = [row['_id'] for row in self.rows]
+        response = self.base.batch_delete_rows(self.table_name, row_ids)
+        self.rows = []
+        return len(row_ids)
+
     def first(self):
+        """Returns the first object of a query, returns None if no match is found.
+        :return row: dict
+        """
         if self.rows:
             return self.rows[0]
         else:
             return None
 
     def last(self):
+        """Returns the last object of a query, returns None if no match is found.
+        :return row: dict
+        """
         if self.rows:
             return self.rows[-1]
         else:
             return None
 
     def count(self):
+        """Returns the number of rows as an integer.
+        :return: int
+        """
         return len(self.rows)
 
     def exists(self):

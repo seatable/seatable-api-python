@@ -53,7 +53,11 @@ class SeaTableAPI(object):
         self.dtable_name = None
 
     def __str__(self):
-        return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
+        return 'SeaTable Base [ %s ]' % self.dtable_uuid
+
+    def _clone(self):
+        clone = self.__class__(self.token, self.server_url)
+        return clone
 
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
@@ -551,16 +555,19 @@ class SeaTableAPI(object):
             'url': url
         }
 
-    def filter(self, table_name, view_name=None, sql=None):
+    def filter(self, table_name, conditions=''):
         """
         :param table_name: str
-        :param view_name: str
-        :param sql: str
+        :param conditions: str
         :return: queryset
         """
-        raw_rows = self.list_rows(table_name, view_name)
-        raw_columns = self.list_columns(table_name, view_name)
-        queryset = QuerySet(raw_rows, raw_columns, sql)
+        base = self._clone()
+        base.auth()
+        queryset = QuerySet(base, table_name)
+        queryset.raw_rows = self.list_rows(table_name)
+        queryset.raw_columns = self.list_columns(table_name)
+        queryset.conditions = conditions
+        queryset._execute_conditions()
         return queryset
 
 
@@ -573,7 +580,7 @@ class Account(object):
         self.token = None
 
     def __str__(self):
-        return 'Account Object [%s]' % (self.login_name)
+        return 'SeaTable Account [ %s ]' % (self.login_name)
 
     def _get_api_token_url(self):
         return '%s/api2/auth-token/' % (self.server_url,)
