@@ -108,3 +108,8 @@ venv.bak/
 
 # vscode
 .vscode/
+
+
+# ply
+parser.out
+parsetab.py

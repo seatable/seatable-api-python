@@ -9,6 +9,7 @@ import requests
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import connect_socket_io
+from .query import QuerySet
 
 
 def parse_headers(token):
@@ -52,7 +53,11 @@ class SeaTableAPI(object):
         self.dtable_name = None
 
     def __str__(self):
-        return 'SeaTableAPI Object [ %s ]' % self.dtable_uuid
+        return 'SeaTable Base [ %s ]' % self.dtable_uuid
+
+    def _clone(self):
+        clone = self.__class__(self.token, self.server_url)
+        return clone
 
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
@@ -223,8 +228,8 @@ class SeaTableAPI(object):
         if len(filters) != len([f for f in filters if isinstance(f, dict)]):
             raise ValueError('filters invalid.')
 
-        for filter in filters:
-            for key in filter.keys():
+        for f in filters:
+            for key in f.keys():
                 if key not in ROW_FILTER_KEYS:
                     raise ValueError('filters invalid.')
 
@@ -550,6 +555,22 @@ class SeaTableAPI(object):
             'url': url
         }
 
+    def filter(self, table_name, conditions='', view_name=None):
+        """
+        :param table_name: str
+        :param conditions: str
+        :return: queryset
+        """
+        base = self._clone()
+        base.auth()
+        queryset = QuerySet(base, table_name)
+        queryset.raw_rows = self.list_rows(table_name, view_name)
+        queryset.raw_columns = self.list_columns(table_name, view_name)
+        queryset.conditions = conditions
+        queryset._execute_conditions()
+        return queryset
+
+
 class Account(object):
     def __init__(self, login_name, password, server_url):
         self.login_name = login_name
@@ -559,7 +580,7 @@ class Account(object):
         self.token = None
 
     def __str__(self):
-        return 'Account Object [%s]' % (self.login_name)
+        return 'SeaTable Account [ %s ]' % (self.login_name)
 
     def _get_api_token_url(self):
         return '%s/api2/auth-token/' % (self.server_url,)
