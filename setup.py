@@ -13,6 +13,6 @@ setup(name='seatable-api',
 
       platforms='any',
       packages=find_packages(),  # folder with __init__.py
-      install_requires=['requests', 'socketIO-client-nexus'],
+      install_requires=['requests', 'socketIO-client-nexus', 'ply'],
       classifiers=['Programming Language :: Python'],
       )
