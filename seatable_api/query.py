@@ -1,5 +1,5 @@
 import copy
-
+import datetime
 from ply import lex, yacc
 
 
@@ -25,7 +25,7 @@ class Lexer(object):
     t_LBORDER = r'\('
     t_RBORDER = r'\)'
     t_EQUAL = r'='
-    t_NOT_EQUAL = r'!='
+    t_NOT_EQUAL = r'!=|<>'
     t_GTE = r'>='
     t_GT = r'>'
     t_LTE = r'<='
@@ -79,7 +79,22 @@ class ConditionsParser(object):
             if '.' in value:
                 value = float(value)
             else:
-                value = int(value)
+                try:
+                    value = int(value)
+                except:
+                    value = 0
+            return value
+        elif column_type in ('date', 'ctime', 'mtime'):
+            value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
+        return value
+
+    def _exchange_cell_value(self, column_type, value):
+        if column_type == 'date':
+            value= value.split(' ')[0]
+            return datetime.datetime.strptime(value, '%Y-%m-%d').date()
+        elif column_type in ('ctime', 'mtime'):
+            value = value.split('T')[0]
+            return datetime.datetime.strptime(value, '%Y-%m-%d').date()
         return value
 
     def _merge(self, left_rows, condition, right_rows):
@@ -107,32 +122,32 @@ class ConditionsParser(object):
 
         if condition == '=':
             for row in self.raw_rows:
-                if row.get(column) == value:
+                if self._exchange_cell_value(column_type, row.get(column)) == value:
                     filtered_rows.append(row)
 
-        elif condition == '!=':
+        elif condition in ('!=', '<>'):
             for row in self.raw_rows:
-                if row.get(column) != value:
+                if self._exchange_cell_value(column_type, row.get(column)) != value:
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
-                if row.get(column) >= value:
+                if self._exchange_cell_value(column_type, row.get(column)) >= value:
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
-                if row.get(column) > value:
+                if self._exchange_cell_value(column_type, row.get(column)) > value:
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
-                if row.get(column) <= value:
+                if self._exchange_cell_value(column_type, row.get(column)) <= value:
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
-                if row.get(column) < value:
+                if self._exchange_cell_value(column_type, row.get(column)) < value:
                     filtered_rows.append(row)
 
         return filtered_rows
