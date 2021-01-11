@@ -196,7 +196,7 @@ class QuerySet(object):
         self.rows = []
 
     def __str__(self):
-        return 'SeaTable Queryset [ %s ]' % self.table_name
+        return '<SeaTable Queryset [ %s ]>' % self.table_name
 
     def __iter__(self):
         return iter(self.rows)
