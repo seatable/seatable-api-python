@@ -2,6 +2,8 @@ import copy
 import datetime
 from ply import lex, yacc
 
+from seatable_api.column import Column
+
 
 class Lexer(object):
 
@@ -25,7 +27,7 @@ class Lexer(object):
     t_LBORDER = r'\('
     t_RBORDER = r'\)'
     t_EQUAL = r'='
-    t_NOT_EQUAL = r'!=|<>'
+    t_NOT_EQUAL = r'(!=)|(<>)'
     t_GTE = r'>='
     t_GT = r'>'
     t_LTE = r'<='
@@ -74,54 +76,6 @@ class ConditionsParser(object):
         if column not in self.raw_columns_map:
             raise ValueError('Column not found!', column)
 
-    def _parse_time(self, time_str):
-        '''
-        transfer the time str into datetime obj and standarize it by UTC
-        :param time_str: 2020-1-20 or 2020-1-20 9:30 or 2020-1-20 9:30:28
-        :return:
-        '''
-        time_str_list = time_str.split(' ')
-        datetime_obj = None
-        if len(time_str_list) == 1:
-            ymd = time_str_list[0]
-            datetime_obj = datetime.datetime.strptime(ymd, '%Y-%m-%d')
-        elif len(time_str_list) == 2:
-            h, m, s = 0, 0, 0
-            ymd, hms_str = time_str_list
-            hms_str_list = hms_str.split(':')
-            if len(hms_str_list) == 1:
-                h = hms_str_list[0]
-            elif len(hms_str_list) == 2:
-                h, m = hms_str_list
-            elif len(hms_str_list) == 3:
-                h, m, s = hms_str_list
-            datetime_obj = datetime.datetime.strptime("%s %s" % (
-                ymd, "%s:%s:%s" % (h, m, s)), '%Y-%m-%d %H:%M:%S')
-        return datetime_obj
-
-    def _exchange_value(self, column_type, value):
-        if column_type == 'number':
-            if '.' in value:
-                value = float(value)
-            else:
-                try:
-                    value = int(value)
-                except:
-                    value = 0
-        elif column_type in ('date', 'ctime', 'mtime'):
-            value = self._parse_time(value)
-        return value
-
-    def _exchange_cell_value(self, column_type, value):
-        if column_type == 'date':
-            return self._parse_time(value)
-        elif column_type in ('ctime', 'mtime'):
-            utc_time = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f+00:00')
-            delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
-            local_time = utc_time + delta2utc
-            return local_time
-        return value
-
     def _merge(self, left_rows, condition, right_rows):
         merged_rows = []
         left_rows_id_list = [row['_id'] for row in left_rows]
@@ -143,36 +97,37 @@ class ConditionsParser(object):
         self._check_column_exists(column)
         filtered_rows = []
         column_type = self.raw_columns_map[column].get('type')
-        value = self._exchange_value(column_type, value)
+        column_obj = Column(column_type)
+        value = column_obj.parse_input_value(value)
 
         if condition == '=':
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) == value:
+                if column_obj.parse_table_value(row.get(column)) == value:
                     filtered_rows.append(row)
 
         elif condition in ('!=', '<>'):
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) != value:
+                if column_obj.parse_table_value(row.get(column)) != value:
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) >= value:
+                if column_obj.parse_table_value(row.get(column)) >= value:
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) > value:
+                if column_obj.parse_table_value(row.get(column)) > value:
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) <= value:
+                if column_obj.parse_table_value(row.get(column)) <= value:
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
-                if self._exchange_cell_value(column_type, row.get(column)) < value:
+                if column_obj.parse_table_value(row.get(column)) < value:
                     filtered_rows.append(row)
 
         return filtered_rows
