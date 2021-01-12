@@ -90,7 +90,6 @@ class ConditionsParser(object):
             for row in right_rows:
                 if row['_id'] not in left_rows_id_list:
                     merged_rows.append(row)
-
         return merged_rows
 
     def _filter(self, column, condition, value):
@@ -102,31 +101,43 @@ class ConditionsParser(object):
 
         if condition == '=':
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) == value:
                     filtered_rows.append(row)
 
         elif condition in ('!=', '<>'):
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) != value:
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) >= value:
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) > value:
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) <= value:
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
+                if not row.get(column):
+                    continue
                 if column_obj.parse_table_value(row.get(column)) < value:
                     filtered_rows.append(row)
 
