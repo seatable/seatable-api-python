@@ -74,6 +74,31 @@ class ConditionsParser(object):
         if column not in self.raw_columns_map:
             raise ValueError('Column not found!', column)
 
+    def _parse_time(self, time_str):
+        '''
+        transfer the time str into datetime obj and standarize it by UTC
+        :param time_str: 2020-1-20 or 2020-1-20 9:30 or 2020-1-20 9:30:28
+        :return:
+        '''
+        time_str_list = time_str.split(' ')
+        datetime_obj = None
+        if len(time_str_list) == 1:
+            ymd = time_str_list[0]
+            datetime_obj = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+        elif len(time_str_list) == 2:
+            h, m, s = 0, 0, 0
+            ymd, hms_str = time_str_list
+            hms_str_list = hms_str.split(':')
+            if len(hms_str_list) == 1:
+                h = hms_str_list[0]
+            elif len(hms_str_list) == 2:
+                h, m = hms_str_list
+            elif len(hms_str_list) == 3:
+                h, m, s = hms_str_list
+            datetime_obj = datetime.datetime.strptime("%s %s" % (
+                ymd, "%s:%s:%s" % (h, m, s)), '%Y-%m-%d %H:%M:%S')
+        return datetime_obj
+
     def _exchange_value(self, column_type, value):
         if column_type == 'number':
             if '.' in value:
@@ -83,18 +108,18 @@ class ConditionsParser(object):
                     value = int(value)
                 except:
                     value = 0
-            return value
         elif column_type in ('date', 'ctime', 'mtime'):
-            value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
+            value = self._parse_time(value)
         return value
 
     def _exchange_cell_value(self, column_type, value):
         if column_type == 'date':
-            value= value.split(' ')[0]
-            return datetime.datetime.strptime(value, '%Y-%m-%d').date()
+            return self._parse_time(value)
         elif column_type in ('ctime', 'mtime'):
-            value = value.split('T')[0]
-            return datetime.datetime.strptime(value, '%Y-%m-%d').date()
+            utc_time = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+            delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
+            local_time = utc_time + delta2utc
+            return local_time
         return value
 
     def _merge(self, left_rows, condition, right_rows):
