@@ -32,19 +32,46 @@ class ColumnValue(object):
         '''fuzzy search'''
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, 'like'))
 
-class TextColumnValue(ColumnValue):
-    '''
-    support the calculation of =, !=, like
-    '''
+
+class StringColumnValue(ColumnValue):
+    """
+    the return data of string column value is type of string, including cloumn type of
+    text, creator, single-select, url, email,....., and support the computation of
+    = ,!=, and like(fuzzy search)
+    """
     def like(self, value):
-        pass
+        if "%" in value:
+            column_value = self.column_value
+            # 1. abc% pattern, start with abc
+            if value[0] != '%' and value[-1] == '%':
+                start = value[:-1]
+                return column_value.startswith(start)
 
-class NumberColumnValue(ColumnValue):
+            # 2. %abc pattern, end with abc
+            elif value[0] == '%' and value[-1] != '%':
+                end = value[1:]
+                return column_value.endswith(end)
 
-    '''
-    support the calculation of =, !=, >, >=, <, <=
-    '''
+            # 3. %abc% pattern, contains abc
+            elif value[0] == '%' and value[-1] == '%':
+                middle = value[1:-1]
+                return middle in column_value
 
+            # 4. a%b pattern, start with a and end with b
+            else:
+                value_split_list = value.split('%')
+                start = value_split_list[0]
+                end = value_split_list[-1]
+                return column_value.startswith(start) and column_value.endswith(end)
+
+        else:
+            raise ValueError('There is no patterns found in "like" phrases')
+
+class NumberDateColumnValue(ColumnValue):
+    """
+    the returned data of number-date-column is digit number, or datetime obj, including the
+    type of number, ctime, date, mtime, support the computation of =, > ,< ,>=, <=, !=
+    """
     def greater_equal(self, value):
         return self.column_value >= value
 
@@ -57,42 +84,17 @@ class NumberColumnValue(ColumnValue):
     def less(self, value):
         return self.column_value < value
 
-class DateColumnValue(NumberColumnValue):
-    '''
-    support the calculation as NumberColumnValue
-    '''
-    pass
-
-class CTimeColumnValue(DateColumnValue):
-    '''
-    support the calculation as DateColumnValue
-    '''
-    pass
-
-class MTimeColumnValue(DateColumnValue):
-    '''
-    support the calculation as DateColumnValue
-    '''
-    pass
-
-class CheckBoxColumnValue(ColumnValue):
-    '''
-    support the calculation of '=','!='
-    '''
-    pass
-
-class MultiSelectColumnValue(ColumnValue):
-    '''
-    support the calculation of = and !=, which should be
-    decided by in or not in method
-    '''
-
+class ListColumnValue(ColumnValue):
+    """
+    the returned data of list-column value is a list like datastructure, including the
+    type of multiple-select, image, collaborator and so on, support the computation of
+    =, != which should be decided by in or not in expression
+    """
     def equal(self,value):
         return value in self.column_value
 
     def unequal(self, value):
         return value not in self.column_value
-
 
 
 
@@ -105,7 +107,7 @@ class TextColumn(object):
         return value
 
     def parse_table_value(self, value):
-        return TextColumnValue(value, self.column_type)
+        return StringColumnValue(value, self.column_type)
 
 class NumberColumn(TextColumn):
 
@@ -127,7 +129,7 @@ class NumberColumn(TextColumn):
         return value
 
     def parse_table_value(self, value):
-        return NumberColumnValue(value, self.column_type)
+        return NumberDateColumnValue(value, self.column_type)
 
 class DateColumn(TextColumn):
 
@@ -159,7 +161,7 @@ class DateColumn(TextColumn):
         return datetime_obj
 
     def parse_table_value(self, time_str):
-        return DateColumnValue(self.parse_input_value(time_str), self.column_type)
+        return NumberDateColumnValue(self.parse_input_value(time_str), self.column_type)
 
 class CTimeColumn(DateColumn):
 
@@ -174,7 +176,7 @@ class CTimeColumn(DateColumn):
         utc_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
         delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
         local_time = utc_time + delta2utc
-        return CTimeColumnValue(local_time, self.column_type)
+        return NumberDateColumnValue(local_time, self.column_type)
 
 class MTimeColumn(CTimeColumn):
 
@@ -189,7 +191,7 @@ class MTimeColumn(CTimeColumn):
         utc_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
         delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
         local_time = utc_time + delta2utc
-        return MTimeColumnValue(local_time, self.column_type)
+        return NumberDateColumnValue(local_time, self.column_type)
 
 class CheckBoxColumn(TextColumn):
 
@@ -207,7 +209,7 @@ class CheckBoxColumn(TextColumn):
             return False
 
     def parse_table_value(self, value):
-        return CheckBoxColumnValue(bool(value), self.column_type)
+        return StringColumnValue(bool(value), self.column_type)
 
 class MultiSelectColumn(TextColumn):
 
@@ -216,7 +218,7 @@ class MultiSelectColumn(TextColumn):
         self.column_type = ColumnTypes.MULTIPLE_SELECT.value
 
     def parse_table_value(self, value):
-        return MultiSelectColumnValue(value, self.column_type)
+        return ListColumnValue(value, self.column_type)
 
 
 
