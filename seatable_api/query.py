@@ -101,44 +101,50 @@ class ConditionsParser(object):
 
         if condition == '=':
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) == value:
+                if column_obj.parse_table_value(cell_value) == value:
                     filtered_rows.append(row)
 
         elif condition in ('!=', '<>'):
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) != value:
+                if column_obj.parse_table_value(cell_value) != value:
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) >= value:
+                if column_obj.parse_table_value(cell_value) >= value:
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) > value:
+                if column_obj.parse_table_value(cell_value) > value:
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) <= value:
+                if column_obj.parse_table_value(cell_value) <= value:
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
-                if not row.get(column):
+                cell_value = row.get(column)
+                if not cell_value:
                     continue
-                if column_obj.parse_table_value(row.get(column)) < value:
+                if column_obj.parse_table_value(cell_value) < value:
                     filtered_rows.append(row)
 
         return filtered_rows
