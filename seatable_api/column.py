@@ -1,6 +1,8 @@
 from seatable_api.constants import ColumnTypes
 import datetime
 
+NULL_LIST = ['', "", [], {}, [{}], None]
+
 class ColumnValue(object):
     """
     This is for the computation of the comparison between the input value and cell value from table
@@ -11,9 +13,13 @@ class ColumnValue(object):
         self.column_type = column_type
 
     def equal(self,value):
+        if not value:
+            return self.column_value in NULL_LIST
         return self.column_value == value
 
     def unequal(self, value):
+        if not value:
+            return self.column_value not in NULL_LIST
         return self.column_value != value
 
     def greater_equal_than(self, value):
@@ -73,16 +79,16 @@ class NumberDateColumnValue(ColumnValue):
     type of number, ctime, date, mtime, support the computation of =, > ,< ,>=, <=, !=
     """
     def greater_equal_than(self, value):
-        return self.column_value >= value
+        return self.column_value >= value if self.column_value else False
 
     def greater_than(self, value):
-        return self.column_value > value
+        return self.column_value > value  if self.column_value else False
 
     def less_equal_than(self, value):
-        return self.column_value <= value
+        return self.column_value <= value if self.column_value else False
 
     def less_than(self, value):
-        return self.column_value < value
+        return self.column_value < value  if self.column_value else False
 
 class ListColumnValue(ColumnValue):
     """
@@ -91,9 +97,13 @@ class ListColumnValue(ColumnValue):
     =, != which should be decided by in or not in expression
     """
     def equal(self,value):
+        if not value:
+            return self.column_value == '' or self.column_value == []
         return value in self.column_value
 
     def unequal(self, value):
+        if not value:
+            return self.column_value != '' and self.column_value != []
         return value not in self.column_value
 
 

@@ -106,56 +106,42 @@ class ConditionsParser(object):
         if condition == '=':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).equal(value):
                     filtered_rows.append(row)
 
         elif condition in ('!=', '<>'):
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).unequal(value):
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).greater_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).greater_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).less_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).less_than(value):
                     filtered_rows.append(row)
 
         elif condition == 'like':
             for row in self.raw_rows:
                 cell_value = row.get(column)
-                if not cell_value:
-                    continue
                 if column_obj.parse_table_value(cell_value).like(value):
                     filtered_rows.append(row)
 
