@@ -172,11 +172,14 @@ class CTimeColumn(DateColumn):
     def __str__(self):
         return "SeaTable CTime Column"
 
-    def parse_table_value(self, time_str):
+    def get_local_time(self, time_str):
         utc_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
         delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
         local_time = utc_time + delta2utc
-        return NumberDateColumnValue(local_time, self.column_type)
+        return local_time
+
+    def parse_table_value(self, time_str):
+        return NumberDateColumnValue(self.get_local_time(time_str), self.column_type)
 
 class MTimeColumn(CTimeColumn):
 
@@ -188,10 +191,7 @@ class MTimeColumn(CTimeColumn):
         return "SeaTable MTime Column"
 
     def parse_table_value(self, time_str):
-        utc_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
-        delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
-        local_time = utc_time + delta2utc
-        return NumberDateColumnValue(local_time, self.column_type)
+        return NumberDateColumnValue(super(MTimeColumn, self).get_local_time(time_str), self.column_type)
 
 class CheckBoxColumn(TextColumn):
 
@@ -209,7 +209,7 @@ class CheckBoxColumn(TextColumn):
             return False
 
     def parse_table_value(self, value):
-        return StringColumnValue(bool(value), self.column_type)
+        return ColumnValue(bool(value), self.column_type)
 
 class MultiSelectColumn(TextColumn):
 
@@ -223,13 +223,13 @@ class MultiSelectColumn(TextColumn):
 
 
 COLUMN_MAP = {
-    ColumnTypes.NUMBER.value: NumberColumn(),
-    ColumnTypes.DATE.value: DateColumn(),
-    ColumnTypes.CTIME.value: CTimeColumn(),
-    ColumnTypes.MTIME.value: MTimeColumn(),
-    ColumnTypes.CHECKBOX.value: CheckBoxColumn(),
-    ColumnTypes.TEXT.value: TextColumn(),
-    ColumnTypes.MULTIPLE_SELECT.value: MultiSelectColumn(),
+    ColumnTypes.NUMBER.value: NumberColumn(),               # 1. number type
+    ColumnTypes.DATE.value: DateColumn(),                   # 2. date type
+    ColumnTypes.CTIME.value: CTimeColumn(),                 # 3. ctime type, create time
+    ColumnTypes.MTIME.value: MTimeColumn(),                 # 4. mtime type, modify time
+    ColumnTypes.CHECKBOX.value: CheckBoxColumn(),           # 5. checkbox type
+    ColumnTypes.TEXT.value: TextColumn(),                   # 6. text type
+    ColumnTypes.MULTIPLE_SELECT.value: MultiSelectColumn(), # 7. multi-select type
 }
 
 class Column(object):
