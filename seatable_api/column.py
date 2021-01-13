@@ -221,7 +221,6 @@ class MultiSelectColumn(TextColumn):
         return ListColumnValue(value, self.column_type)
 
 
-
 COLUMN_MAP = {
     ColumnTypes.NUMBER.value: NumberColumn(),               # 1. number type
     ColumnTypes.DATE.value: DateColumn(),                   # 2. date type
@@ -232,22 +231,7 @@ COLUMN_MAP = {
     ColumnTypes.MULTIPLE_SELECT.value: MultiSelectColumn(), # 7. multi-select type
 }
 
-class Column(object):
+def get_cloumn_by_type(column_type):
 
-    def __init__(self, column_type):
-        self.column = COLUMN_MAP.get(column_type, TextColumn())
+    return(COLUMN_MAP.get(column_type, TextColumn()))
 
-    def rasie_error(self, value):
-        raise ValueError("%s type column does not support the query string as %s" % (self.column.column_type, value))
-
-    def parse_input_value(self, value):
-        try:
-            return self.column.parse_input_value(value)
-        except:
-            self.rasie_error(value)
-
-    def parse_table_value(self, value):
-        try:
-            return self.column.parse_table_value(value)
-        except:
-            self.rasie_error(value)

@@ -2,7 +2,7 @@ import copy
 import datetime
 from ply import lex, yacc
 
-from seatable_api.column import Column
+from seatable_api.column import get_cloumn_by_type
 
 
 class Lexer(object):
@@ -97,8 +97,11 @@ class ConditionsParser(object):
         self._check_column_exists(column)
         filtered_rows = []
         column_type = self.raw_columns_map[column].get('type')
-        column_obj = Column(column_type)
-        value = column_obj.parse_input_value(value)
+        column_obj = get_cloumn_by_type(column_type)
+        try:
+            value = column_obj.parse_input_value(value)
+        except:
+            raise ValueError("%s type column does not support the query string as %s" % (column_type, value))
 
         if condition == '=':
             for row in self.raw_rows:
