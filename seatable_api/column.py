@@ -16,16 +16,16 @@ class ColumnValue(object):
     def unequal(self, value):
         return self.column_value != value
 
-    def greater_equal(self, value):
+    def greater_equal_than(self, value):
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, '>='))
 
-    def greater(self, value):
+    def greater_than(self, value):
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, '>'))
 
-    def less_equal(self, value):
+    def less_equal_than(self, value):
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, '<='))
 
-    def less(self, value):
+    def less_than(self, value):
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, '<'))
 
     def like(self, value):
@@ -72,16 +72,16 @@ class NumberDateColumnValue(ColumnValue):
     the returned data of number-date-column is digit number, or datetime obj, including the
     type of number, ctime, date, mtime, support the computation of =, > ,< ,>=, <=, !=
     """
-    def greater_equal(self, value):
+    def greater_equal_than(self, value):
         return self.column_value >= value
 
-    def greater(self, value):
+    def greater_than(self, value):
         return self.column_value > value
 
-    def less_equal(self, value):
+    def less_equal_than(self, value):
         return self.column_value <= value
 
-    def less(self, value):
+    def less_than(self, value):
         return self.column_value < value
 
 class ListColumnValue(ColumnValue):

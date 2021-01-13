@@ -13,14 +13,15 @@ class Lexer(object):
     # List of token names. This is always required
     tokens = (
         'LBORDER', 'RBORDER',
-        'AND', 'OR',
+        'AND', 'OR', 'LIKE',
         'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
-        'QUOTE_STRING', 'STRING',
+        'QUOTE_STRING', 'STRING'
     )
 
     reserved = {
         'and': 'AND',
         'or': 'OR',
+        'like':'LIKE'
     }
 
     # Regular expression rules for simple tokens
@@ -120,7 +121,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value).greater_equal(value):
+                if column_obj.parse_table_value(cell_value).greater_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '>':
@@ -128,7 +129,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value).greater(value):
+                if column_obj.parse_table_value(cell_value).greater_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<=':
@@ -136,7 +137,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value).less_equal(value):
+                if column_obj.parse_table_value(cell_value).less_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<':
@@ -144,14 +145,22 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value).less(value):
+                if column_obj.parse_table_value(cell_value).less_than(value):
+                    filtered_rows.append(row)
+
+        elif condition == 'like':
+            for row in self.raw_rows:
+                cell_value = row.get(column)
+                if not cell_value:
+                    continue
+                if column_obj.parse_table_value(cell_value).like(value):
                     filtered_rows.append(row)
 
         return filtered_rows
 
     # List of token names. This is always required
     tokens = (
-        'AND', 'OR',
+        'AND', 'OR', 'LIKE',
         'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
         'QUOTE_STRING', 'STRING',
     )
@@ -175,6 +184,7 @@ class ConditionsParser(object):
                   | factor GT factor
                   | factor LTE factor
                   | factor LT factor
+                  | factor LIKE factor
         """
         p[0] = self._filter(p[1], p[2], p[3])
 
