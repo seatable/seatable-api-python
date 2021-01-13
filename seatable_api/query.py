@@ -104,7 +104,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) == value:
+                if column_obj.parse_table_value(cell_value).equal(value):
                     filtered_rows.append(row)
 
         elif condition in ('!=', '<>'):
@@ -112,7 +112,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) != value:
+                if column_obj.parse_table_value(cell_value).unequal(value):
                     filtered_rows.append(row)
 
         elif condition == '>=':
@@ -120,7 +120,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) >= value:
+                if column_obj.parse_table_value(cell_value).greater_equal(value):
                     filtered_rows.append(row)
 
         elif condition == '>':
@@ -128,7 +128,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) > value:
+                if column_obj.parse_table_value(cell_value).greater(value):
                     filtered_rows.append(row)
 
         elif condition == '<=':
@@ -136,7 +136,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) <= value:
+                if column_obj.parse_table_value(cell_value).less_equal(value):
                     filtered_rows.append(row)
 
         elif condition == '<':
@@ -144,7 +144,7 @@ class ConditionsParser(object):
                 cell_value = row.get(column)
                 if not cell_value:
                     continue
-                if column_obj.parse_table_value(cell_value) < value:
+                if column_obj.parse_table_value(cell_value).less(value):
                     filtered_rows.append(row)
 
         return filtered_rows
