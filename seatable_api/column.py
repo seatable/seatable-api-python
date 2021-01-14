@@ -2,6 +2,8 @@ import datetime
 
 from seatable_api.constants import ColumnTypes
 
+# Set the null list to distinguish the pure none and the number 0 or 0.00, which is
+# a critical real value in number type column.
 NULL_LIST = ['', [], None]
 
 
