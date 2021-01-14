@@ -19,12 +19,12 @@ class ColumnValue(object):
         self.column_type = column_type
 
     def equal(self, value):
-        if value in NULL_LIST:
+        if value == '':
             return self.column_value in NULL_LIST
         return self.column_value == value
 
     def unequal(self, value):
-        if value in NULL_LIST:
+        if value == '':
             return self.column_value not in NULL_LIST
         return self.column_value != value
 
@@ -174,6 +174,9 @@ class NumberColumn(BaseColumn):
         return "SeaTable Number Column"
 
     def parse_input_value(self, value):
+        if value == "":
+            return value
+
         if '.' in value:
             value = float(value)
         else:
