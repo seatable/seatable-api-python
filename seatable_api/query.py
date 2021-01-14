@@ -98,10 +98,7 @@ class ConditionsParser(object):
         filtered_rows = []
         column_type = self.raw_columns_map[column].get('type')
         column_obj = get_cloumn_by_type(column_type)
-        try:
-            value = column_obj.parse_input_value(value)
-        except:
-            raise ValueError("%s type column does not support the query string as %s" % (column_type, value))
+        value = column_obj.parse_input_value(value)
 
         if condition == '=':
             for row in self.raw_rows:
