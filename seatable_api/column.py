@@ -51,7 +51,7 @@ class StringColumnValue(ColumnValue):
 
     def like(self, value):
         if "%" in value:
-            column_value = self.column_value
+            column_value = self.column_value or ""
             # 1. abc% pattern, start with abc
             if value[0] != '%' and value[-1] == '%':
                 start = value[:-1]
@@ -105,12 +105,14 @@ class ListColumnValue(ColumnValue):
     def equal(self, value):
         if not value:
             return self.column_value in NULL_LIST
-        return value in self.column_value
+        column_value = self.column_value or []
+        return value in column_value
 
     def unequal(self, value):
         if not value:
             return self.column_value not in NULL_LIST
-        return value not in self.column_value
+        column_value = self.column_value or []
+        return value not in column_value
 
 class BoolColumnValue(ColumnValue):
     """
@@ -142,6 +144,9 @@ class TextColumn(BaseColumn):
     def __init__(self):
         self.column_type = ColumnTypes.TEXT.value
 
+    def __str__(self):
+        return "SeaTable Text Column"
+
     def parse_table_value(self, value):
         return StringColumnValue(value, self.column_type)
 
@@ -151,9 +156,11 @@ class LongTextColumn(TextColumn):
         super(LongTextColumn, self).__init__()
         self.column_type = ColumnTypes.LONG_TEXT.value
 
+    def __str__(self):
+        return "SeaTable Long Text Column"
+
     def parse_table_value(self, value):
         value = value.strip('\n')
-        print(value,'vvvvv')
         return StringColumnValue(value, self.column_type)
 
 class NumberColumn(BaseColumn):
