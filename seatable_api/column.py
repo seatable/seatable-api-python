@@ -84,18 +84,28 @@ class NumberDateColumnValue(ColumnValue):
     the returned data of number-date-column is digit number, or datetime obj, including the
     type of number, ctime, date, mtime, support the computation of =, > ,< ,>=, <=, !=
     """
-
     def greater_equal_than(self, value):
+        if value == "":
+            self.raise_error()
         return self.column_value >= value if self.column_value not in NULL_LIST else False
 
     def greater_than(self, value):
+        if value == "":
+            self.raise_error()
         return self.column_value > value if self.column_value not in NULL_LIST else False
 
     def less_equal_than(self, value):
+        if value == "":
+            self.raise_error()
         return self.column_value <= value if self.column_value not in NULL_LIST else False
 
     def less_than(self, value):
+        if value == "":
+            self.raise_error()
         return self.column_value < value if self.column_value not in NULL_LIST else False
+
+    def raise_error(self):
+        raise ValueError("""The token ">", ">=", "<", "<=" does not support the null query string "".""")
 
 class ListColumnValue(ColumnValue):
     """
