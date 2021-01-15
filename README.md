@@ -2,4 +2,6 @@
 
 Python client for SeaTable web api
 
-Document: https://docs.seatable.io/published/seatable-api/python/seatable-api.md
+Document: https://seatable.github.io/seatable-scripts/
+
+pypi: https://pypi.org/project/seatable-api/
