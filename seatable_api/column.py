@@ -109,7 +109,7 @@ class NumberDateColumnValue(ColumnValue):
 
 class ListColumnValue(ColumnValue):
     """
-    the returned data of list-column value is a list like datastructure, including the
+    the returned data of list-column value is a list like data structure, including the
     type of multiple-select, image, collaborator and so on, support the computation of
     =, != which should be decided by in or not in expression
     """
@@ -330,4 +330,4 @@ COLUMN_MAP = {
 
 
 def get_cloumn_by_type(column_type):
-    return (COLUMN_MAP.get(column_type, TextColumn()))
+    return COLUMN_MAP.get(column_type, TextColumn())
