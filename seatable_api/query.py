@@ -1,6 +1,8 @@
 import copy
-
+import datetime
 from ply import lex, yacc
+
+from seatable_api.column import get_cloumn_by_type
 
 
 class Lexer(object):
@@ -11,21 +13,22 @@ class Lexer(object):
     # List of token names. This is always required
     tokens = (
         'LBORDER', 'RBORDER',
-        'AND', 'OR',
+        'AND', 'OR', 'LIKE',
         'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
-        'QUOTE_STRING', 'STRING',
+        'QUOTE_STRING', 'STRING'
     )
 
     reserved = {
         'and': 'AND',
         'or': 'OR',
+        'like':'LIKE'
     }
 
     # Regular expression rules for simple tokens
     t_LBORDER = r'\('
     t_RBORDER = r'\)'
     t_EQUAL = r'='
-    t_NOT_EQUAL = r'!='
+    t_NOT_EQUAL = r'(!=)|(<>)'
     t_GTE = r'>='
     t_GT = r'>'
     t_LTE = r'<='
@@ -74,14 +77,6 @@ class ConditionsParser(object):
         if column not in self.raw_columns_map:
             raise ValueError('Column not found!', column)
 
-    def _exchange_value(self, column_type, value):
-        if column_type == 'number':
-            if '.' in value:
-                value = float(value)
-            else:
-                value = int(value)
-        return value
-
     def _merge(self, left_rows, condition, right_rows):
         merged_rows = []
         left_rows_id_list = [row['_id'] for row in left_rows]
@@ -96,50 +91,62 @@ class ConditionsParser(object):
             for row in right_rows:
                 if row['_id'] not in left_rows_id_list:
                     merged_rows.append(row)
-
         return merged_rows
 
     def _filter(self, column, condition, value):
         self._check_column_exists(column)
         filtered_rows = []
         column_type = self.raw_columns_map[column].get('type')
-        value = self._exchange_value(column_type, value)
+        column_obj = get_cloumn_by_type(column_type)
+        value = column_obj.parse_input_value(value)
 
         if condition == '=':
             for row in self.raw_rows:
-                if row.get(column) == value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).equal(value):
                     filtered_rows.append(row)
 
-        elif condition == '!=':
+        elif condition in ('!=', '<>'):
             for row in self.raw_rows:
-                if row.get(column) != value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).unequal(value):
                     filtered_rows.append(row)
 
         elif condition == '>=':
             for row in self.raw_rows:
-                if row.get(column) >= value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).greater_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '>':
             for row in self.raw_rows:
-                if row.get(column) > value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).greater_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<=':
             for row in self.raw_rows:
-                if row.get(column) <= value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).less_equal_than(value):
                     filtered_rows.append(row)
 
         elif condition == '<':
             for row in self.raw_rows:
-                if row.get(column) < value:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).less_than(value):
+                    filtered_rows.append(row)
+
+        elif condition == 'like':
+            for row in self.raw_rows:
+                cell_value = row.get(column)
+                if column_obj.parse_table_value(cell_value).like(value):
                     filtered_rows.append(row)
 
         return filtered_rows
 
     # List of token names. This is always required
     tokens = (
-        'AND', 'OR',
+        'AND', 'OR', 'LIKE',
         'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
         'QUOTE_STRING', 'STRING',
     )
@@ -163,6 +170,7 @@ class ConditionsParser(object):
                   | factor GT factor
                   | factor LTE factor
                   | factor LT factor
+                  | factor LIKE factor
         """
         p[0] = self._filter(p[1], p[2], p[3])
 
