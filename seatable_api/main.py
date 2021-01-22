@@ -1,9 +1,10 @@
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib import parse
 from uuid import UUID
 
+# https://requests.readthedocs.io
 import requests
 
 from .constants import ROW_FILTER_KEYS, ColumnTypes
@@ -46,44 +47,50 @@ class SeaTableAPI(object):
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
-        self.dtable_uuid = None
+        self.jwt_token = None
+        self.jwt_exp = None
         self.headers = None
-        self.socketIO = None
         self.workspace_id = None
+        self.dtable_uuid = None
         self.dtable_name = None
         self.timeout = 30
+        self.socketIO = None
 
     def __str__(self):
-        return '<SeaTable Base [ %s ]>' % self.dtable_uuid
+        return '<SeaTable Base [ %s ]>' % self.dtable_name
 
     def _clone(self):
         clone = self.__class__(self.token, self.server_url)
-        clone.dtable_uuid = self.dtable_uuid
-        clone.jwt_token = self.jwt_token
-        clone.headers = self.headers
         clone.dtable_server_url = self.dtable_server_url
+        clone.jwt_token = self.jwt_token
+        clone.jwt_exp = self.jwt_exp
+        clone.headers = self.headers
         clone.workspace_id = self.workspace_id
+        clone.dtable_uuid = self.dtable_uuid
         clone.dtable_name = self.dtable_name
+        clone.timeout = self.timeout
         return clone
 
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
+        self.jwt_exp = datetime.now() + timedelta(days=3)
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
         response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
 
-        self.dtable_uuid = data.get('dtable_uuid')
+        self.dtable_server_url = parse_server_url(data.get('dtable_server'))
         self.jwt_token = data.get('access_token')
         self.headers = parse_headers(self.jwt_token)
-        self.dtable_server_url = parse_server_url(data.get('dtable_server'))
         self.workspace_id = data.get('workspace_id')
+        self.dtable_uuid = data.get('dtable_uuid')
         self.dtable_name = data.get('dtable_name')
 
         if with_socket_io is True:
             base = self._clone()
             self.socketIO = SocketIO(base)
+            self.socketIO._connect()
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
