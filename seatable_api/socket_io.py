@@ -1,53 +1,62 @@
-from urllib.parse import splitport
-from socketIO_client_nexus import SocketIO
+from datetime import datetime
+
+# https://python-socketio.readthedocs.io
+import socketio
 
 from .constants import JOIN_ROOM, UPDATE_DTABLE, NEW_NOTIFICATION
 
 
-def parse_dtable_server_url(dtable_server_url):
-    host, port = splitport(dtable_server_url)
-    return host, port
+class SocketIO(object):
 
+    def __init__(self, base):
+        self.base = base
+        self.dtable_ws_url = base.dtable_server_url + '?dtable_uuid=' + base.dtable_uuid
+        self.sio = socketio.Client(request_timeout=base.timeout)
 
-def on_connect():
-    print('[ Seatable Socket IO Connected ]')
+    def __str__(self):
+        return '<SeaTable SocketIO [ %s ]>' % self.base.dtable_name
 
+    def _connect(self):
+        self.sio.on('connect', self._on_connect)
+        self.sio.on('disconnect', self._on_disconnect)
+        self.sio.on('connect_error', self._on_connect_error)
+        self.sio.on(UPDATE_DTABLE, self.on_update_dtable)
+        self.sio.on(NEW_NOTIFICATION, self.on_new_notification)
 
-def on_reconnect():
-    print('[ Seatable Socket IO Reconnected ]')
+        self.sio.connect(self.dtable_ws_url)
 
+    def _refresh_jwt_token(self):
+        self.base.auth()
+        print(datetime.now(), '[ SeaTable SocketIO JWT token refreshed ]')
 
-def on_disconnect():
-    print('[ Seatable Socket IO Disconnected ]')
+    def _on_connect(self):
+        if datetime.now() >= self.base.jwt_exp:
+            self._refresh_jwt_token()
+        self.sio.emit(JOIN_ROOM, (self.base.dtable_uuid, self.base.jwt_token))
+        print(datetime.now(), '[ SeaTable SocketIO connection established ]')
 
+    def _on_disconnect(self):
+        print(datetime.now(), '[ SeaTable SocketIO connection dropped ]')
 
-def on_update_dtable(data, index, *args):
-    """ Default is print received data
-        You can overwrite this event
-    """
-    print(UPDATE_DTABLE, data)
+    def _on_connect_error(self, error_msg):
+        print(datetime.now(), '[ SeaTable SocketIO connection error ]', error_msg)
 
+    def on_update_dtable(self, data, index, *args):
+        """ Default is print received data
+            You can overwrite this event
+        """
+        print(datetime.now(), '[ SeaTable SocketIO on UPDATE_DTABLE ]')
+        print(data)
 
-def on_new_notification(data, index, *args):
-    """ Default is print received data
-        You can overwrite this event
-    """
-    print(NEW_NOTIFICATION, data)
+    def on_new_notification(self, data, index, *args):
+        """ Default is print received data
+            You can overwrite this event
+        """
+        print(datetime.now(), '[ SeaTable SocketIO on NEW_NOTIFICATION ]')
+        print(data)
 
+    def on(self, event, handler):
+        self.sio.on(event, handler)
 
-def connect_socket_io(dtable_server_url, dtable_uuid, jwt_token):
-    host, port = parse_dtable_server_url(dtable_server_url)
-    params = {'dtable_uuid': dtable_uuid}
-
-    socketIO = SocketIO(host, port, params=params)
-    socketIO.on('connect', on_connect)
-    socketIO.on('reconnect', on_reconnect)
-    socketIO.on('disconnect', on_disconnect)
-
-    socketIO.emit(JOIN_ROOM, dtable_uuid, jwt_token)
-    print('[ Seatable Socket IO Connected]')
-
-    socketIO.on(UPDATE_DTABLE, on_update_dtable)
-    socketIO.on(NEW_NOTIFICATION, on_new_notification)
-
-    return socketIO
+    def wait(self):
+        self.sio.wait()

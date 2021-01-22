@@ -1,3 +1,0 @@
-requests
-socketIO-client-nexus
-ply

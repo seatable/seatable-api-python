@@ -1,14 +1,15 @@
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib import parse
 from uuid import UUID
 
+# https://requests.readthedocs.io
 import requests
 
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
-from .socket_io import connect_socket_io
+from .socket_io import SocketIO
 from .query import QuerySet
 
 
@@ -46,37 +47,50 @@ class SeaTableAPI(object):
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
-        self.dtable_uuid = None
+        self.jwt_token = None
+        self.jwt_exp = None
         self.headers = None
-        self.socketIO = None
         self.workspace_id = None
+        self.dtable_uuid = None
         self.dtable_name = None
+        self.timeout = 30
+        self.socketIO = None
 
     def __str__(self):
-        return 'SeaTable Base [ %s ]' % self.dtable_uuid
+        return '<SeaTable Base [ %s ]>' % self.dtable_name
 
     def _clone(self):
         clone = self.__class__(self.token, self.server_url)
+        clone.dtable_server_url = self.dtable_server_url
+        clone.jwt_token = self.jwt_token
+        clone.jwt_exp = self.jwt_exp
+        clone.headers = self.headers
+        clone.workspace_id = self.workspace_id
+        clone.dtable_uuid = self.dtable_uuid
+        clone.dtable_name = self.dtable_name
+        clone.timeout = self.timeout
         return clone
 
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
+        self.jwt_exp = datetime.now() + timedelta(days=3)
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
 
-        self.dtable_uuid = data.get('dtable_uuid')
-        jwt_token = data.get('access_token')
-        self.headers = parse_headers(jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
+        self.jwt_token = data.get('access_token')
+        self.headers = parse_headers(self.jwt_token)
         self.workspace_id = data.get('workspace_id')
+        self.dtable_uuid = data.get('dtable_uuid')
         self.dtable_name = data.get('dtable_name')
 
         if with_socket_io is True:
-            self.socketIO = connect_socket_io(
-                self.dtable_server_url, self.dtable_uuid, jwt_token)
+            base = self._clone()
+            self.socketIO = SocketIO(base)
+            self.socketIO._connect()
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -110,7 +124,7 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._metadata_server_url()
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('metadata')
 
@@ -126,7 +140,7 @@ class SeaTableAPI(object):
         }
         if view_name:
             params['view_name'] = view_name
-        response = requests.get(url, params=params, headers=self.headers)
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('rows')
 
@@ -140,7 +154,7 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row': row_data,
         }
-        response = requests.post(url, json=json_data, headers=self.headers)
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def batch_append_rows(self, table_name, rows_data):
@@ -153,7 +167,7 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'rows': rows_data,
         }
-        response = requests.post(url, json=json_data, headers=self.headers)
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def insert_row(self, table_name, row_data, anchor_row_id):
@@ -168,7 +182,7 @@ class SeaTableAPI(object):
             'row': row_data,
             'anchor_row_id': anchor_row_id,
         }
-        response = requests.post(url, json=json_data, headers=self.headers)
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def update_row(self, table_name, row_id, row_data):
@@ -183,7 +197,7 @@ class SeaTableAPI(object):
             'row_id': row_id,
             'row': row_data,
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def delete_row(self, table_name, row_id):
@@ -196,7 +210,7 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_id': row_id,
         }
-        response = requests.delete(url, json=json_data, headers=self.headers)
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def batch_delete_rows(self, table_name, row_ids):
@@ -209,7 +223,7 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_ids': row_ids,
         }
-        response = requests.delete(url, json=json_data, headers=self.headers)
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
@@ -250,7 +264,7 @@ class SeaTableAPI(object):
 
         url = self._filtered_rows_server_url()
         response = requests.get(
-            url, json=json_data, params=params, headers=self.headers)
+            url, json=json_data, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('rows')
 
@@ -262,7 +276,7 @@ class SeaTableAPI(object):
         url = self._app_download_link_url()
         params = {'path': path}
         headers = parse_headers(self.token)
-        response = requests.get(url, params=params, headers=headers)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('download_link')
 
@@ -272,7 +286,7 @@ class SeaTableAPI(object):
         """
         url = self._app_upload_link_url()
         headers = parse_headers(self.token)
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -292,7 +306,7 @@ class SeaTableAPI(object):
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
-        response = requests.post(url, json=json_data, headers=self.headers)
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
@@ -311,7 +325,7 @@ class SeaTableAPI(object):
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
-        response = requests.delete(url, json=json_data, headers=self.headers)
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     def list_columns(self, table_name, view_name=None):
@@ -326,7 +340,7 @@ class SeaTableAPI(object):
         }
         if view_name:
             params['view_name'] = view_name
-        response = requests.get(url, params=params, headers=self.headers)
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('columns')
 
@@ -348,7 +362,7 @@ class SeaTableAPI(object):
         }
         if column_key:
             json_data['column_key'] = column_key
-        response = requests.post(url, json=json_data, headers=self.headers)
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -366,7 +380,7 @@ class SeaTableAPI(object):
             'column_key': column_key,
             'new_column_name': new_column_name
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -385,7 +399,7 @@ class SeaTableAPI(object):
             'column_key': column_key,
             'new_column_width': new_column_width
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -403,7 +417,7 @@ class SeaTableAPI(object):
             'column_key': column_key,
             'frozen': frozen
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -421,7 +435,7 @@ class SeaTableAPI(object):
             'column_key': column_key,
             'target_column_key': target_column_key
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -441,7 +455,7 @@ class SeaTableAPI(object):
             'column_key': column_key,
             'new_column_type': new_column_type.value
         }
-        response = requests.put(url, json=json_data, headers=self.headers)
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -456,7 +470,7 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'column_key': column_key
         }
-        response = requests.delete(url, json=json_data, headers=self.headers)
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
@@ -465,7 +479,7 @@ class SeaTableAPI(object):
             raise Exception('url invalid.')
         path = url.split(str(UUID(self.dtable_uuid)))[-1].strip('/')
         download_link = self.get_file_download_link(parse.unquote(path))
-        response = requests.get(download_link)
+        response = requests.get(download_link, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('download file error')
         with open(save_path, 'wb') as f:
@@ -494,7 +508,7 @@ class SeaTableAPI(object):
             'replace': 1 if replace else 0
         }, files={
             'file': (name, io.BytesIO(content))
-        })
+        }, timeout=self.timeout)
         d = response.json()[0]
         url = '%(server)s/workspace/%(workspace_id)s/asset/%(dtable_uuid)s/%(relative_path)s/%(filename)s' % {
             'server': self.server_url.strip('/'),
@@ -538,7 +552,7 @@ class SeaTableAPI(object):
             'replace': 1 if replace else 0
         }, files={
             'file': (name, open(file_path, 'rb'))
-        })
+        }, timeout=self.timeout)
         d = response.json()[0]
         url = '%(server)s/workspace/%(workspace_id)s/asset/%(dtable_uuid)s/%(relative_path)s/%(filename)s' % {
             'server': self.server_url.strip('/'),
@@ -562,7 +576,6 @@ class SeaTableAPI(object):
         :return: queryset
         """
         base = self._clone()
-        base.auth()
         queryset = QuerySet(base, table_name)
         queryset.raw_rows = self.list_rows(table_name, view_name)
         queryset.raw_columns = self.list_columns(table_name, view_name)
@@ -578,9 +591,10 @@ class Account(object):
         self.password = password
         self.server_url = server_url.strip().strip('/')
         self.token = None
+        self.timeout = 30
 
     def __str__(self):
-        return 'SeaTable Account [ %s ]' % (self.login_name)
+        return '<SeaTable Account [ %s ]>' % (self.login_name)
 
     def _get_api_token_url(self):
         return '%s/api2/auth-token/' % (self.server_url,)
@@ -614,16 +628,16 @@ class Account(object):
         response = requests.post(self._get_api_token_url(), data={
             'username': self.login_name,
             'password': self.password
-        })
+        }, timeout=self.timeout)
         data = parse_response(response)
         self.token = data.get('token')
 
     def load_account_info(self):
-        response = requests.get(self._get_account_info_url(), headers=self.token_headers)
+        response = requests.get(self._get_account_info_url(), headers=self.token_headers, timeout=self.timeout)
         self.username = parse_response(response).get('email')
 
     def list_workspaces(self):
-        response = requests.get(self._list_workspaces_url(), headers=self.token_headers)
+        response = requests.get(self._list_workspaces_url(), headers=self.token_headers, timeout=self.timeout)
         return parse_response(response)
 
     def add_base(self, name, workspace_id=None):
@@ -648,7 +662,7 @@ class Account(object):
         response = requests.post(self._add_base_url(), data={
             'name': name,
             'owner': owner
-        }, headers=self.token_headers)
+        }, headers=self.token_headers, timeout=self.timeout)
         return parse_response(response).get('table')
 
     def copy_base(self, src_workspace_id, base_name, dst_workspace_id):
@@ -656,11 +670,12 @@ class Account(object):
             'src_workspace_id': src_workspace_id,
             'name': base_name,
             'dst_workspace_id': dst_workspace_id
-        }, headers=self.token_headers)
+        }, headers=self.token_headers, timeout=self.timeout)
         return parse_response(response).get('dtable')
 
     def get_base(self, workspace_id, base_name, with_socket_io=False):
-        response = requests.get(self._get_temp_api_token_url(workspace_id, base_name), headers=self.token_headers)
+        response = requests.get(self._get_temp_api_token_url(workspace_id, base_name),
+            headers=self.token_headers, timeout=self.timeout)
         api_token = parse_response(response).get('api_token')
         base = SeaTableAPI(api_token, self.server_url)
         base.auth(with_socket_io=with_socket_io)

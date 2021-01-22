@@ -1,8 +1,9 @@
 import copy
-import datetime
+
+# https://ply.readthedocs.io
 from ply import lex, yacc
 
-from seatable_api.column import get_cloumn_by_type
+from .column import get_column_by_type
 
 
 class Lexer(object):
@@ -97,7 +98,7 @@ class ConditionsParser(object):
         self._check_column_exists(column)
         filtered_rows = []
         column_type = self.raw_columns_map[column].get('type')
-        column_obj = get_cloumn_by_type(column_type)
+        column_obj = get_column_by_type(column_type)
         value = column_obj.parse_input_value(value)
 
         if condition == '=':
@@ -196,7 +197,7 @@ class QuerySet(object):
         self.rows = []
 
     def __str__(self):
-        return 'SeaTable Queryset [ %s ]' % self.table_name
+        return '<SeaTable Queryset [ %s ]>' % self.table_name
 
     def __iter__(self):
         return iter(self.rows)

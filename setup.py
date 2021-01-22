@@ -2,17 +2,22 @@ from setuptools import setup, find_packages
 
 __version__ = ''
 
+with open('README.md', 'r', encoding='utf-8') as fh:
+    long_description = fh.read()
 
-setup(name='seatable-api',
-      version=__version__,
-      license='Apache Licence',
-      description='Client interface for SeaTable Web API',
-      author='seatable',
-      author_email='support@seafile.com',
-      url='https://github.com/seatable/seatable-api-python',
+setup(
+    name='seatable-api',
+    version=__version__,
+    license='Apache Licence',
+    description='Python client for SeaTable web api',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author='seatable',
+    author_email='support@seafile.com',
+    url='https://github.com/seatable/seatable-api-python',
 
-      platforms='any',
-      packages=find_packages(),  # folder with __init__.py
-      install_requires=['requests', 'socketIO-client-nexus', 'ply'],
-      classifiers=['Programming Language :: Python'],
-      )
+    platforms='any',
+    packages=find_packages(),  # folder with __init__.py
+    install_requires=['requests', 'python-socketio<5', 'ply'],
+    classifiers=['Programming Language :: Python'],
+)

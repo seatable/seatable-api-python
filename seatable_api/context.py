@@ -1,8 +1,8 @@
 import os
 import sys
-
 import json
 import functools
+
 
 is_cloud = os.environ.get('is_cloud', "0") == "1"
 if is_cloud and not sys.stdin.isatty():
@@ -22,6 +22,7 @@ def need_data(func):
             return None
         return func(*args, **kwargs)
     return wrapper
+
 
 class Context:
     @property
