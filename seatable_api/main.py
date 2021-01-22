@@ -8,7 +8,7 @@ import requests
 
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
-from .socket_io import connect_socket_io
+from .socket_io import SocketIO
 from .query import QuerySet
 
 
@@ -58,6 +58,12 @@ class SeaTableAPI(object):
 
     def _clone(self):
         clone = self.__class__(self.token, self.server_url)
+        clone.dtable_uuid = self.dtable_uuid
+        clone.jwt_token = self.jwt_token
+        clone.headers = self.headers
+        clone.dtable_server_url = self.dtable_server_url
+        clone.workspace_id = self.workspace_id
+        clone.dtable_name = self.dtable_name
         return clone
 
     def auth(self, with_socket_io=False):
@@ -69,15 +75,15 @@ class SeaTableAPI(object):
         data = parse_response(response)
 
         self.dtable_uuid = data.get('dtable_uuid')
-        jwt_token = data.get('access_token')
-        self.headers = parse_headers(jwt_token)
+        self.jwt_token = data.get('access_token')
+        self.headers = parse_headers(self.jwt_token)
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
         self.workspace_id = data.get('workspace_id')
         self.dtable_name = data.get('dtable_name')
 
         if with_socket_io is True:
-            self.socketIO = connect_socket_io(
-                self.dtable_server_url, self.dtable_uuid, jwt_token)
+            base = self._clone()
+            self.socketIO = SocketIO(base)
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -563,7 +569,6 @@ class SeaTableAPI(object):
         :return: queryset
         """
         base = self._clone()
-        base.auth()
         queryset = QuerySet(base, table_name)
         queryset.raw_rows = self.list_rows(table_name, view_name)
         queryset.raw_columns = self.list_columns(table_name, view_name)
