@@ -1,6 +1,6 @@
-import datetime
+from datetime import datetime
 
-from seatable_api.constants import ColumnTypes
+from .constants import ColumnTypes
 
 # Set the null list to distinguish the pure none and the number 0 or 0.00, which is
 # a critical real value in number type column.
@@ -44,9 +44,10 @@ class ColumnValue(object):
         '''fuzzy search'''
         raise ValueError("%s type column does not support the query method '%s'" % (self.column_type, 'like'))
 
+
 class StringColumnValue(ColumnValue):
     """
-    the return data of string column value is type of string, including cloumn type of
+    the return data of string column value is type of string, including column type of
     text, creator, single-select, url, email,....., and support the computation of
     = ,!=, and like(fuzzy search)
     """
@@ -79,11 +80,13 @@ class StringColumnValue(ColumnValue):
         else:
             raise ValueError('There is no patterns found in "like" phrases')
 
+
 class NumberDateColumnValue(ColumnValue):
     """
     the returned data of number-date-column is digit number, or datetime obj, including the
     type of number, ctime, date, mtime, support the computation of =, > ,< ,>=, <=, !=
     """
+
     def greater_equal_than(self, value):
         if value == "":
             self.raise_error()
@@ -107,6 +110,7 @@ class NumberDateColumnValue(ColumnValue):
     def raise_error(self):
         raise ValueError("""The token ">", ">=", "<", "<=" does not support the null query string "".""")
 
+
 class ListColumnValue(ColumnValue):
     """
     the returned data of list-column value is a list like data structure, including the
@@ -126,6 +130,7 @@ class ListColumnValue(ColumnValue):
         column_value = self.column_value or []
         return value not in column_value
 
+
 class BoolColumnValue(ColumnValue):
     """
     the returned data of bool-column value is should be True or False, such as check-box
@@ -139,7 +144,6 @@ class BoolColumnValue(ColumnValue):
         return bool(self.column_value) != value
 
 
-
 # Column related class handle the treatment of both input value inputted by users by using
 # the query statements, and the value in table displayed in different data structure in
 # varies types of columns
@@ -151,6 +155,7 @@ class BaseColumn(object):
     def parse_table_value(self, value):
         return ColumnValue(value)
 
+
 class TextColumn(BaseColumn):
 
     def __init__(self):
@@ -161,6 +166,7 @@ class TextColumn(BaseColumn):
 
     def parse_table_value(self, value):
         return StringColumnValue(value, self.column_type)
+
 
 class LongTextColumn(TextColumn):
 
@@ -174,6 +180,7 @@ class LongTextColumn(TextColumn):
     def parse_table_value(self, value):
         value = value.strip('\n')
         return StringColumnValue(value, self.column_type)
+
 
 class NumberColumn(BaseColumn):
 
@@ -204,6 +211,7 @@ class NumberColumn(BaseColumn):
                 please use "" or digital numbers
                 """ % (self.column_type, value))
 
+
 class DateColumn(BaseColumn):
 
     def __init__(self):
@@ -220,7 +228,7 @@ class DateColumn(BaseColumn):
             datetime_obj = None
             if len(time_str_list) == 1:
                 ymd = time_str_list[0]
-                datetime_obj = datetime.datetime.strptime(ymd, '%Y-%m-%d')
+                datetime_obj = datetime.strptime(ymd, '%Y-%m-%d')
             elif len(time_str_list) == 2:
                 h, m, s = 0, 0, 0
                 ymd, hms_str = time_str_list
@@ -231,7 +239,7 @@ class DateColumn(BaseColumn):
                     h, m = hms_str_list
                 elif len(hms_str_list) == 3:
                     h, m, s = hms_str_list
-                datetime_obj = datetime.datetime.strptime("%s %s" % (
+                datetime_obj = datetime.strptime("%s %s" % (
                     ymd, "%s:%s:%s" % (h, m, s)), '%Y-%m-%d %H:%M:%S')
             return datetime_obj
         except:
@@ -249,6 +257,7 @@ class DateColumn(BaseColumn):
                 "YYYY-MM-DD hh:mm:ss" or
                 """ % (self.column_type, value))
 
+
 class CTimeColumn(DateColumn):
 
     def __init__(self):
@@ -259,13 +268,14 @@ class CTimeColumn(DateColumn):
         return "SeaTable CTime Column"
 
     def get_local_time(self, time_str):
-        utc_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
-        delta2utc = datetime.datetime.now() - datetime.datetime.utcnow()
+        utc_time = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f+00:00')
+        delta2utc = datetime.now() - datetime.utcnow()
         local_time = utc_time + delta2utc
         return local_time
 
     def parse_table_value(self, time_str):
         return NumberDateColumnValue(self.get_local_time(time_str), self.column_type)
+
 
 class MTimeColumn(CTimeColumn):
 
@@ -278,6 +288,7 @@ class MTimeColumn(CTimeColumn):
 
     def parse_table_value(self, time_str):
         return NumberDateColumnValue(super(MTimeColumn, self).get_local_time(time_str), self.column_type)
+
 
 class CheckBoxColumn(BaseColumn):
 
@@ -307,6 +318,7 @@ class CheckBoxColumn(BaseColumn):
                         "true" or "false", case insensitive
                         """ % (self.column_type, value))
 
+
 class MultiSelectColumn(BaseColumn):
 
     def __init__(self):
@@ -329,5 +341,5 @@ COLUMN_MAP = {
 }
 
 
-def get_cloumn_by_type(column_type):
+def get_column_by_type(column_type):
     return COLUMN_MAP.get(column_type, TextColumn())
