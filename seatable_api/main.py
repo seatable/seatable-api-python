@@ -344,6 +344,19 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('columns')
 
+    def get_column_by_name(self, table_name, column_name, view_name=None):
+        columns = self.list_columns(table_name, view_name)
+        for column in columns:
+            if column.get('name') == column_name:
+                return column
+        raise ValueError('Column "%s" does not exist in current view' % column_name)
+
+    def get_column_link_id(self, table_name, column_name, view_name=None):
+        column = self.get_column_by_name(table_name, column_name, view_name)
+        if column.get('type') == 'link':
+            return column.get('data', {}).get('link_id')
+        raise ValueError('Column "%s" is not type of link' % column_name)
+
     def insert_column(self, table_name, column_name, column_type, column_key=None):
         """
         :param table_name: str
