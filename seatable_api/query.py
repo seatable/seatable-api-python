@@ -9,20 +9,20 @@ from .column import get_column_by_type
 class Lexer(object):
 
     def __init__(self):
-        self.lexer = lex.lex(module=self)
+        self.lexer = lex.lex(module=self, debug=False)
 
     # List of token names. This is always required
     tokens = (
         'LBORDER', 'RBORDER',
-        'AND', 'OR', 'LIKE',
-        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'AND', 'OR',
+        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT', 'LIKE',
         'QUOTE_STRING', 'STRING'
     )
 
     reserved = {
         'and': 'AND',
         'or': 'OR',
-        'like':'LIKE'
+        'like': 'LIKE',
     }
 
     # Regular expression rules for simple tokens
@@ -62,7 +62,7 @@ class Lexer(object):
 class ConditionsParser(object):
 
     def __init__(self):
-        self.yaccer = yacc.yacc(module=self)
+        self.yaccer = yacc.yacc(module=self, debug=False)
         self.lexer = Lexer().lexer
 
     # Parse
@@ -147,8 +147,8 @@ class ConditionsParser(object):
 
     # List of token names. This is always required
     tokens = (
-        'AND', 'OR', 'LIKE',
-        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT',
+        'AND', 'OR',
+        'EQUAL', 'NOT_EQUAL', 'GTE', 'GT', 'LTE', 'LT', 'LIKE',
         'QUOTE_STRING', 'STRING',
     )
 
