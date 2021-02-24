@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
+import requests
 
 class EmailSender(object):
 
@@ -49,8 +49,24 @@ class WechatSender(object):
     def __init__(self, detail):
         self.detail = detail
 
+    @property
+    def _headers(self):
+
+        return {
+            "Content-Type": "application/json"
+        }
+
+    def _format_msg(self, msg):
+        return {
+            "msgtype": "text",
+            "text": {
+                "content": msg,
+            }
+    }
+
     def send_msg(self, msg, **kwargs):
-        pass
+        webhook_url = self.detail.get('webhook_url')
+        requests.post(webhook_url, json=self._format_msg(msg), headers=self._headers)
 
 
 def get_sender_by_account(account):
