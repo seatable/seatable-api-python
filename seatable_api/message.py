@@ -71,8 +71,8 @@ class WechatSender(object):
 
 def get_sender_by_account(account):
 
-    account_type = account.pop('account_type', '')
-    detail = account.pop('detail')
+    account_type = account.get('account_type', '')
+    detail = account.get('detail')
     return {
         'email'       : EmailSender(detail),
         'wechat_robot': WechatSender(detail)

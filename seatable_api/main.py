@@ -148,7 +148,7 @@ class SeaTableAPI(object):
             self._auth_msg_account(using_account)
         msg_sender = self._msg_sender
         if not msg_sender:
-            raise ValueError('Message sender does not configed.')
+            raise ValueError('Message sender does not configered.')
         msg_sender.send_msg(msg, **kwargs)
 
     def get_metadata(self):
