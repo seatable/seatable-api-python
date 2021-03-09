@@ -144,6 +144,20 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('rows')
 
+    def get_row(self, table_name, row_id):
+        """
+        :param table_name: str
+        :param row_id: str
+        :return: dict
+        """
+        url = self._row_server_url() + row_id + '/'
+        params = {
+            'table_name': table_name,
+        }
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
+
     def append_row(self, table_name, row_data):
         """
         :param table_name: str
