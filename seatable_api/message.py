@@ -8,7 +8,7 @@ class EmailSender(object):
     def __init__(self, detail):
         self.detail = detail
         self.sender = None
-        self._email_server = self._get_server_connection()
+        self._get_server_connection()
 
     def _get_server_connection(self):
         email_host = self.detail.get('email_host')
@@ -18,9 +18,8 @@ class EmailSender(object):
         smtp = smtplib.SMTP(email_host, email_port)
         smtp.starttls()
         smtp.login(host_user, password)
-
         self.sender = host_user
-        return smtp
+        self._email_server = smtp
 
     def send_msg(self, msg, **kwargs,):
         msg_obj = MIMEMultipart()
@@ -41,11 +40,12 @@ class EmailSender(object):
         msg_obj['Cc'] = copy_to
         msg_obj['Reply-to'] = reply_to
         msg_obj.attach(content_body)
-        server = self._get_server_connection()
+        server = self._email_server
         server.sendmail(self.sender, contact_email, msg_obj.as_string())
         quit_after_send = kwargs.get('quit_after_send', False)
         if quit_after_send:
             server.quit()
+            self._email_server = None
 
 class WechatSender(object):
 
