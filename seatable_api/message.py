@@ -8,6 +8,7 @@ class EmailSender(object):
     def __init__(self, detail):
         self.detail = detail
         self.sender = None
+        self._email_server = self._get_server_connection()
 
     def _get_server_connection(self):
         email_host = self.detail.get('email_host')
@@ -21,7 +22,7 @@ class EmailSender(object):
         self.sender = host_user
         return smtp
 
-    def send_msg(self, msg, **kwargs):
+    def send_msg(self, msg, **kwargs,):
         msg_obj = MIMEMultipart()
         content_body = MIMEText(msg)
         contact_email = kwargs.get('email', '')
@@ -40,9 +41,11 @@ class EmailSender(object):
         msg_obj['Cc'] = copy_to
         msg_obj['Reply-to'] = reply_to
         msg_obj.attach(content_body)
-        smtp = self._get_server_connection()
-        smtp.sendmail(self.sender, contact_email, msg_obj.as_string())
-        smtp.quit()
+        server = self._get_server_connection()
+        server.sendmail(self.sender, contact_email, msg_obj.as_string())
+        quit_after_send = kwargs.get('quit_after_send', False)
+        if quit_after_send:
+            server.quit()
 
 class WechatSender(object):
 
@@ -73,7 +76,7 @@ def get_sender_by_account(account):
 
     account_type = account.get('account_type', '')
     detail = account.get('detail')
-    return {
-        'email'       : EmailSender(detail),
-        'wechat_robot': WechatSender(detail)
-    }.get(account_type)
+    if account_type == 'email':
+        return EmailSender(detail)
+    if account_type == 'wechat_robot':
+        return WechatSender(detail)
