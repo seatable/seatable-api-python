@@ -74,11 +74,14 @@ class SeaTableAPI(object):
         return clone
 
     def _auth_msg_account(self, account_name):
-        account = self._get_account_detail(account_name)
+        try:
+            account = self._get_account_detail(account_name)
+        except:
+            raise ValueError ('Auth failed. Please check the account name or network')
         msg_sender = get_sender_by_account(account)
         self._msg_sender = msg_sender
 
-    def auth(self, with_socket_io=False, msg_sender_account_name=None):
+    def auth(self, with_socket_io=False, msg_sender_account=None):
         """Auth to SeaTable
         """
         self.jwt_exp = datetime.now() + timedelta(days=3)
@@ -99,8 +102,8 @@ class SeaTableAPI(object):
             self.socketIO = SocketIO(base)
             self.socketIO._connect()
 
-        if msg_sender_account_name:
-            self._auth_msg_account(msg_sender_account_name)
+        if msg_sender_account:
+            self._auth_msg_account(msg_sender_account)
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -150,6 +153,11 @@ class SeaTableAPI(object):
         if not msg_sender:
             raise ValueError('Message sender does not configered.')
         msg_sender.send_msg(msg, **kwargs)
+
+    def msg_quit(self):
+        if self._msg_sender:
+            self._msg_sender.quit()
+        self._msg_sender = None
 
     def get_metadata(self):
         """

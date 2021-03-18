@@ -2,52 +2,102 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import requests
+import abc
 
-class EmailSender(object):
+
+__all__ = ['get_sender_by_account',]
+
+class MessageSender(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractclassmethod
+    def send_msg(self, msg, **kwargs):
+        return
+
+    @abc.abstractclassmethod
+    def quit(self):
+        return
+
+class EmailSender(MessageSender):
+    """
+    The connection to email server will built after it's initiated, which can make
+    email send faster. Once call the method quit() or set quit_after_send true, it
+    will disconnect the email server.
+    """
 
     def __init__(self, detail):
         self.detail = detail
         self.sender = None
         self._get_server_connection()
 
+
     def _get_server_connection(self):
+        try:
+            if self._email_server and self._current_detail == self.detail:
+                return
+        except:
+            pass
+
         email_host = self.detail.get('email_host')
         email_port = int(self.detail.get('email_port'))
         host_user = self.detail.get('host_user')
         password = self.detail.get('password')
-        smtp = smtplib.SMTP(email_host, email_port)
-        smtp.starttls()
-        smtp.login(host_user, password)
+        try:
+            smtp = smtplib.SMTP(email_host, email_port)
+            smtp.starttls()
+            smtp.login(host_user, password)
+        except:
+            raise ValueError("The connection to the server of email sender failed")
+
         self.sender = host_user
         self._email_server = smtp
+        self._current_detail = self.detail
 
-    def send_msg(self, msg, **kwargs,):
+    def send_msg(self, msg, **kwargs):
         msg_obj = MIMEMultipart()
         content_body = MIMEText(msg)
-        contact_email = kwargs.get('email', '')
+        send_to = kwargs.get('send_to', '')
         subject = kwargs.get('subject', '')
         source = kwargs.get('from', '')
-        copy_to = kwargs.get('cc', '')
+        copy_to = kwargs.get('copy_to', '')
         reply_to = kwargs.get('reply_to')
-        if not contact_email:
+        if not send_to:
             raise ValueError('The email is not valid in the email sender')
         if not subject:
             raise ValueError('The subject is not valid in the email sender')
 
+        if not isinstance(send_to, list):
+            send_to = [send_to, ]
+
+        if not isinstance(copy_to, list):
+            copy_to = [copy_to, ]
+
+        if not source:
+            source = self.sender
         msg_obj['Subject'] = subject
         msg_obj['From'] = source
-        msg_obj['To'] = contact_email
-        msg_obj['Cc'] = copy_to
+        msg_obj['To'] = ",".join(send_to)
+        msg_obj['Cc'] = copy_to and ",".join(copy_to) or ""
         msg_obj['Reply-to'] = reply_to
         msg_obj.attach(content_body)
+        recevers = copy_to and send_to + copy_to or send_to
         server = self._email_server
-        server.sendmail(self.sender, contact_email, msg_obj.as_string())
+        if not server:
+            raise ValueError('Message sender does not configered.')
+        server.sendmail(self.sender, recevers, msg_obj.as_string())
         quit_after_send = kwargs.get('quit_after_send', False)
         if quit_after_send:
             server.quit()
             self._email_server = None
 
-class WechatSender(object):
+    def quit(self):
+        server = self._email_server
+        if server:
+            server.quit()
+            self._email_server = None
+
+class WechatSender(MessageSender):
 
     def __init__(self, detail):
         self.detail = detail
