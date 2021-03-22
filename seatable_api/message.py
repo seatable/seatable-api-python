@@ -33,11 +33,6 @@ class EmailSender(MessageSender):
 
 
     def _get_server_connection(self):
-        try:
-            if self._email_server and self._current_detail == self.detail:
-                return
-        except:
-            pass
 
         email_host = self.detail.get('email_host')
         email_port = int(self.detail.get('email_port'))
@@ -52,7 +47,6 @@ class EmailSender(MessageSender):
 
         self.sender = host_user
         self._email_server = smtp
-        self._current_detail = self.detail
 
     def send_msg(self, msg, **kwargs):
         msg_obj = MIMEMultipart()
