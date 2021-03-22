@@ -5,8 +5,6 @@ import requests
 import abc
 
 
-__all__ = ['get_sender_by_account',]
-
 class MessageSender(object):
 
     __metaclass__ = abc.ABCMeta
