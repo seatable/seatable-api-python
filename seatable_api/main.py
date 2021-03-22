@@ -359,6 +359,8 @@ class SeaTableAPI(object):
         return data.get('columns')
 
     def get_column_key_by_name(self, table_name, column_name, view_name=None):
+        # if column_name is the key of column, return.
+        # if column_name is the name of column, return its key.
         columns = self.list_columns(table_name, view_name)
         for column in columns:
             if column.get('key') == column_name:
@@ -464,6 +466,7 @@ class SeaTableAPI(object):
         """
         url = self._column_server_url()
         column_key = self.get_column_key_by_name(table_name, column_key)
+        target_column_key = self.get_column_key_by_name(table_name, target_column_key)
         json_data = {
             'op_type': MOVE_COLUMN,
             'table_name': table_name,

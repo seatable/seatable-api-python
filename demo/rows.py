@@ -1,7 +1,7 @@
 from seatable_api import SeaTableAPI, Base
-
-server_url = 'http://127.0.0.1:8000'
-api_token = 'd67d4e0eeee24b55ff7b60595faed7e2df36e1d1'
+from seatable_api.constants import ColumnTypes
+server_url = 'https://dev.seatable.cn'
+api_token = 'f8c03507d022437ba9874dd54f7046a112a9b1fb'
 
 
 def filter_rows():
@@ -96,6 +96,16 @@ def queryset_filter():
 
 
 if __name__ == '__main__':
-    filter_rows()
-    row_link()
-    queryset_filter()
+    # filter_rows()
+    # row_link()
+    # queryset_filter()
+    base = Base(api_token, server_url)
+    base.auth()
+
+    print(base.list_columns('Table1'))
+    # base.rename_column('Table1', 'PR', 'PR1')
+    # base.resize_column('Table1', 'PR1', 200)
+    # base.freeze_column('Table1', 'PR1', frozen=False)
+    # base.move_column('Table1', '描述', 'PR1')
+    # base.modify_column_type('Table1', 'New Test', ColumnTypes.NUMBER)
+    base.delete_column('Table1', 'New Test')
