@@ -3,6 +3,7 @@ from seatable_api import SeaTableAPI, Base
 server_url = 'http://127.0.0.1:8000'
 api_token = 'd67d4e0eeee24b55ff7b60595faed7e2df36e1d1'
 
+
 def filter_rows():
     seatable = SeaTableAPI(api_token, server_url)
     seatable.auth()
@@ -98,4 +99,3 @@ if __name__ == '__main__':
     filter_rows()
     row_link()
     queryset_filter()
-
