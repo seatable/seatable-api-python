@@ -382,7 +382,7 @@ class SeaTableAPI(object):
             'column_type': column_type.value
         }
         if column_key:
-            json_data['column_key'] = column_key
+            json_data['anchor_column'] = column_key
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -398,7 +398,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': RENAME_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_name': new_column_name
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -417,7 +417,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': RESIZE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_width': new_column_width
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -435,7 +435,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': FREEZE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'frozen': frozen
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -453,8 +453,8 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': MOVE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
-            'target_column_key': target_column_key
+            'column': column_key,
+            'target_column': target_column_key
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
@@ -473,7 +473,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': MODIFY_COLUMN_TYPE,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_type': new_column_type.value
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -489,7 +489,7 @@ class SeaTableAPI(object):
         url = self._column_server_url()
         json_data = {
             'table_name': table_name,
-            'column_key': column_key
+            'column': column_key
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
