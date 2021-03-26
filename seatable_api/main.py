@@ -358,17 +358,6 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('columns')
 
-    def get_column_key_by_name(self, table_name, column_name, view_name=None):
-        # if column_name is the key of column, return.
-        # if column_name is the name of column, return its key.
-        columns = self.list_columns(table_name, view_name)
-        for column in columns:
-            if column.get('key') == column_name:
-                return column_name
-            elif column.get('name') == column_name:
-                return column.get('key')
-        raise ValueError('column "%s" does not exist in current view' % column_name)
-
     def get_column_link_id(self, table_name, column_name, view_name=None):
         columns = self.list_columns(table_name, view_name)
         for column in columns:
@@ -393,8 +382,7 @@ class SeaTableAPI(object):
             'column_type': column_type.value
         }
         if column_key:
-            column_key = self.get_column_key_by_name(table_name, column_key)
-            json_data['column_key'] = column_key
+            json_data['anchor_column'] = column_key
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -407,11 +395,10 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
         json_data = {
             'op_type': RENAME_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_name': new_column_name
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -427,11 +414,10 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
         json_data = {
             'op_type': RESIZE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_width': new_column_width
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -446,11 +432,10 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
         json_data = {
             'op_type': FREEZE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'frozen': frozen
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -465,13 +450,11 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
-        target_column_key = self.get_column_key_by_name(table_name, target_column_key)
         json_data = {
             'op_type': MOVE_COLUMN,
             'table_name': table_name,
-            'column_key': column_key,
-            'target_column_key': target_column_key
+            'column': column_key,
+            'target_column': target_column_key
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
@@ -487,11 +470,10 @@ class SeaTableAPI(object):
         if new_column_type not in ColumnTypes:
             raise ValueError("type %s invalid!" % (new_column_type,))
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
         json_data = {
             'op_type': MODIFY_COLUMN_TYPE,
             'table_name': table_name,
-            'column_key': column_key,
+            'column': column_key,
             'new_column_type': new_column_type.value
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -505,10 +487,9 @@ class SeaTableAPI(object):
         :return: None
         """
         url = self._column_server_url()
-        column_key = self.get_column_key_by_name(table_name, column_key)
         json_data = {
             'table_name': table_name,
-            'column_key': column_key
+            'column': column_key
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
