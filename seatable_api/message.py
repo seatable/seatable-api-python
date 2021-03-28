@@ -4,29 +4,18 @@ from email.mime.text import MIMEText
 import requests
 import abc
 
-
-class MessageSender(object):
-
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractclassmethod
-    def send_msg(self, msg, **kwargs):
-        return
-
-    @abc.abstractclassmethod
-    def quit(self):
-        return
-
-class EmailSender(MessageSender):
+class EmailSender(object):
     """
     The connection to email server will built after it's initiated, which can make
     email send faster. Once call the method quit() or set quit_after_send true, it
     will disconnect the email server.
     """
 
+
     def __init__(self, detail):
         self.detail = detail
         self.sender = None
+        self.msg_type = 'email'
         self._get_server_connection()
 
 
@@ -89,10 +78,11 @@ class EmailSender(MessageSender):
             server.quit()
             self._email_server = None
 
-class WechatSender(MessageSender):
+class WechatSender(object):
 
     def __init__(self, detail):
         self.detail = detail
+        self.msg_type = 'wechat'
 
     @property
     def _headers(self):
@@ -109,9 +99,12 @@ class WechatSender(MessageSender):
             }
     }
 
-    def send_msg(self, msg, **kwargs):
+    def send_msg(self, msg):
         webhook_url = self.detail.get('webhook_url')
         requests.post(webhook_url, json=self._format_msg(msg), headers=self._headers)
+
+    def quit(self):
+        return
 
 
 def get_sender_by_account(account):

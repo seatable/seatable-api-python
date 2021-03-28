@@ -146,13 +146,22 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('account')
 
-    def send_msg(self, msg, using_account=None, **kwargs):
+    def send_email(self, msg, using_account=None, **kwargs):
         if using_account:
             self._auth_msg_account(using_account)
         msg_sender = self._msg_sender
-        if not msg_sender:
-            raise ValueError('Message sender does not configered.')
+        if not msg_sender or msg_sender.msg_type != 'email':
+            raise ValueError('Email message sender does not configered.')
         msg_sender.send_msg(msg, **kwargs)
+
+    def send_wechat_msg(self, msg, using_account=None):
+
+        if using_account:
+            self._auth_msg_account(using_account)
+        msg_sender = self._msg_sender
+        if not msg_sender or msg_sender.msg_type != 'wechat':
+            raise ValueError('Wechat message sender does not configered.')
+        msg_sender.send_msg(msg)
 
     def msg_quit(self):
         if self._msg_sender:
