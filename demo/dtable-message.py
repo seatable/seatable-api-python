@@ -8,24 +8,21 @@ base.auth(
     # msg_sender_account="My Email Account"
 )
 print('sending.....')
-base.send_msg('api 发送消息测试1',
+base.send_email('api 发送消息测试1',
               using_account="My Email Account",
               subject="Test",
               send_to='350178982@qq.com',
               copy_to="r350178982@126.com",
               # quit_after_send=True
               )
-base.send_msg('api 发送消息测试2',
+base.send_email('api 发送消息测试2',
               # using_account="My Email Account",
               subject="Test",
               send_to=['350178982@qq.com',"r350178982@126.com"]
               )
-base.msg_quit()
-base.send_msg('api 发送消息测试3',
-              using_account="My Email Account2",
-              subject="Test",
-              send_to='350178982@qq.com',
-              quit_after_send=True,
+# base.msg_quit()/
+base.send_wechat_msg('api 发送消息测试3',
+              using_account="My wechat group",
               )
 # base.send_msg('api 发送消息测试4',
 #               # using_account="My Email Account",
