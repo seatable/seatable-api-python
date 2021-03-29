@@ -5,12 +5,6 @@ import requests
 import abc
 
 class EmailSender(object):
-    """
-    The connection to email server will built after it's initiated, which can make
-    email send faster. Once call the method quit() or set quit_after_send true, it
-    will disconnect the email server.
-    """
-
 
     def __init__(self, detail):
         self.detail = detail
