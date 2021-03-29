@@ -71,6 +71,14 @@ class SeaTableAPI(object):
         clone.timeout = self.timeout
         return clone
 
+    def _get_msg_sender_by_account(self, account_name):
+        try:
+            account = self._get_account_detail(account_name)
+            msg_sender = get_sender_by_account(account)
+        except:
+            msg_sender = None
+        return msg_sender
+
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
@@ -118,6 +126,33 @@ class SeaTableAPI(object):
 
     def _column_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/columns/'
+
+    def _third_party_accounts_url(self):
+        return self.server_url + '/api/v2.1/dtable/third-party-account/'
+
+    def _get_account_detail(self, account_name):
+        url = self._third_party_accounts_url()
+        params = {
+            'account_name': account_name
+        }
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+
+        data = parse_response(response)
+        return data.get('account')
+
+    def send_email(self, account_name, msg,  **kwargs):
+        msg_sender = self._get_msg_sender_by_account(account_name)
+        if not msg_sender or msg_sender.msg_type != 'email':
+            raise ValueError('Email message sender does not configered.')
+        msg_sender.send_msg(msg, **kwargs)
+        msg_sender.quit()
+
+    def send_wechat_msg(self, account_name, msg):
+        msg_sender = self._get_msg_sender_by_account(account_name)
+        if not msg_sender or msg_sender.msg_type != 'wechat':
+            raise ValueError('Wechat message sender does not configered.')
+        msg_sender.send_msg(msg)
 
     def get_metadata(self):
         """
