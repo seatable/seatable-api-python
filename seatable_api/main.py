@@ -7,6 +7,7 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
+from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import SocketIO
@@ -146,7 +147,6 @@ class SeaTableAPI(object):
         if not msg_sender or msg_sender.msg_type != 'email':
             raise ValueError('Email message sender does not configered.')
         msg_sender.send_msg(msg, **kwargs)
-        msg_sender.quit()
 
     def send_wechat_msg(self, account_name, msg):
         msg_sender = self._get_msg_sender_by_account(account_name)
