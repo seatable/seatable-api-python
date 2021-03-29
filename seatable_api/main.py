@@ -7,7 +7,6 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
-from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import SocketIO
@@ -56,7 +55,6 @@ class SeaTableAPI(object):
         self.dtable_name = None
         self.timeout = 30
         self.socketIO = None
-        self._msg_sender = None
 
     def __str__(self):
         return '<SeaTable Base [ %s ]>' % self.dtable_name
@@ -73,15 +71,7 @@ class SeaTableAPI(object):
         clone.timeout = self.timeout
         return clone
 
-    def _auth_msg_account(self, account_name):
-        try:
-            account = self._get_account_detail(account_name)
-        except:
-            raise ValueError ('Auth failed. Please check the account name or network')
-        msg_sender = get_sender_by_account(account)
-        self._msg_sender = msg_sender
-
-    def auth(self, with_socket_io=False, msg_sender_account=None):
+    def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
         self.jwt_exp = datetime.now() + timedelta(days=3)
@@ -101,9 +91,6 @@ class SeaTableAPI(object):
             base = self._clone()
             self.socketIO = SocketIO(base)
             self.socketIO._connect()
-
-        if msg_sender_account:
-            self._auth_msg_account(msg_sender_account)
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -131,42 +118,6 @@ class SeaTableAPI(object):
 
     def _column_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/columns/'
-
-    def _third_party_accounts_url(self):
-        return self.server_url + '/api/v2.1/dtable/third-party-account/'
-
-    def _get_account_detail(self, account_name):
-        url = self._third_party_accounts_url()
-        params = {
-            'account_name': account_name
-        }
-        headers = parse_headers(self.token)
-        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
-
-        data = parse_response(response)
-        return data.get('account')
-
-    def send_email(self, msg, using_account=None, **kwargs):
-        if using_account:
-            self._auth_msg_account(using_account)
-        msg_sender = self._msg_sender
-        if not msg_sender or msg_sender.msg_type != 'email':
-            raise ValueError('Email message sender does not configered.')
-        msg_sender.send_msg(msg, **kwargs)
-
-    def send_wechat_msg(self, msg, using_account=None):
-
-        if using_account:
-            self._auth_msg_account(using_account)
-        msg_sender = self._msg_sender
-        if not msg_sender or msg_sender.msg_type != 'wechat':
-            raise ValueError('Wechat message sender does not configered.')
-        msg_sender.send_msg(msg)
-
-    def msg_quit(self):
-        if self._msg_sender:
-            self._msg_sender.quit()
-        self._msg_sender = None
 
     def get_metadata(self):
         """
