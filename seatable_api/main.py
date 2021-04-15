@@ -104,6 +104,9 @@ class SeaTableAPI(object):
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
 
+    def _table_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/tables/'
+
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
@@ -162,6 +165,19 @@ class SeaTableAPI(object):
         response = requests.get(url, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('metadata')
+
+    def add_table(self, table_name, lang='en'):
+        """
+        :param table_name: str
+        :param lang: str, currently 'en' for English, and 'zh-cn' for Chinese
+        """
+        url = self._table_server_url()
+        json_data = {
+            'table_name': table_name,
+            'lang': lang,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
 
     def list_rows(self, table_name, view_name=None):
         """
