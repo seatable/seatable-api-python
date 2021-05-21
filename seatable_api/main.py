@@ -286,6 +286,11 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     def batch_update_rows(self, table_name, rows_data):
+        """
+        :param table_name: str
+        :param rows_data: list
+        :return:
+        """
         url = self._batch_update_row_server_url()
         json_data = {
             'table_name': table_name,
@@ -442,6 +447,9 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     def batch_update_links(self, links):
+        """
+        :param links: list
+        """
         url = self._batch_update_row_link_server_url()
         json_data = {
             'links': links
@@ -479,6 +487,7 @@ class SeaTableAPI(object):
         :param column_name: str
         :param column_type: ColumnType enum
         :param column_key: str, which you want to insert after
+        :param column_data: dict, config information of column
         :return: dict
         """
         if column_type not in ColumnTypes:
