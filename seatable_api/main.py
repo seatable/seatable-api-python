@@ -113,6 +113,9 @@ class SeaTableAPI(object):
     def _batch_row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-append-rows/'
 
+    def _batch_update_row_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-update-rows/'
+
     def _batch_delete_row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-delete-rows/'
 
@@ -179,7 +182,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def list_rows(self, table_name, view_name=None):
+    def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None ):
         """
         :param table_name: str
         :param view_name: str
@@ -191,6 +194,13 @@ class SeaTableAPI(object):
         }
         if view_name:
             params['view_name'] = view_name
+        if order_by:
+            params['order_by'] = order_by
+            params['direction'] = 'desc' if desc else 'asc'
+        if start:
+            params['start'] = start
+        if limit:
+            params['limit'] = limit
         response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('rows')
@@ -261,6 +271,15 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_id': row_id,
             'row': row_data,
+        }
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def batch_update_rows(self, table_name, rows_data):
+        url = self._batch_update_row_server_url()
+        json_data = {
+            'table_name': table_name,
+            'updates': rows_data,
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
