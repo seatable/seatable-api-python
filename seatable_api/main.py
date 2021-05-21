@@ -188,10 +188,14 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None ):
+    def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None):
         """
         :param table_name: str
         :param view_name: str
+        :param order_by: str
+        :param desc: boolean
+        :param start: int
+        :param limit: int
         :return: list
         """
         url = self._row_server_url()
@@ -420,7 +424,6 @@ class SeaTableAPI(object):
 
     def update_link(self, link_id, table_id, other_table_id, row_id, other_rows_ids):
         """
-
         :param link_id: str
         :param table_id: str
         :param other_table_id: str
