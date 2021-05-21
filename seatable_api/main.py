@@ -125,6 +125,9 @@ class SeaTableAPI(object):
     def _row_link_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/links/'
 
+    def _batch_update_row_link_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/batch-update-links/'
+
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
 
@@ -133,6 +136,9 @@ class SeaTableAPI(object):
 
     def _column_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/columns/'
+
+    def _column_options_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/column-options/'
 
     def _third_party_accounts_url(self):
         return self.server_url + '/api/v2.1/dtable/third-party-account/'
@@ -412,6 +418,35 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    def update_link(self, link_id, table_id, other_table_id, row_id, other_rows_ids):
+        """
+
+        :param link_id: str
+        :param table_id: str
+        :param other_table_id: str
+        :param row_id: str
+        :param other_rows_ids: list
+        """
+        url = self._row_link_server_url()
+        json_data = {
+            'link_id': link_id,
+            'table_id': table_id,
+            'other_table_id': other_table_id,
+            'row_id': row_id,
+            'other_rows_ids': other_rows_ids,
+        }
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def batch_update_links(self, links):
+        url = self._batch_update_row_link_server_url()
+        json_data = {
+            'links': links
+        }
+
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
     def list_columns(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -435,7 +470,7 @@ class SeaTableAPI(object):
                 return column.get('data', {}).get('link_id')
         raise ValueError('link type column "%s" does not exist in current view' % column_name)
 
-    def insert_column(self, table_name, column_name, column_type, column_key=None):
+    def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
         """
         :param table_name: str
         :param column_name: str
@@ -453,6 +488,8 @@ class SeaTableAPI(object):
         }
         if column_key:
             json_data['anchor_column'] = column_key
+        if column_data:
+            json_data['column_data'] = column_data
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -547,6 +584,22 @@ class SeaTableAPI(object):
             'new_column_type': new_column_type.value
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
+
+    def add_column_options(self, table_name, column, options):
+        """
+        :param table_name: str
+        :param column: str
+        :param options: list
+        """
+        url = self._column_options_server_url()
+        json_data = {
+            "table_name": table_name,
+            "column": column,
+            "options": options
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
 
