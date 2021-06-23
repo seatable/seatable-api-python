@@ -742,7 +742,7 @@ class SeaTableAPI(object):
         queryset._execute_conditions()
         return queryset
 
-    def query(self, sql, src):
+    def query(self, sql, src='all'):
         """
         :param sql: str
         :param src: src
