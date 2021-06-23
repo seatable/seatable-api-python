@@ -143,6 +143,9 @@ class SeaTableAPI(object):
     def _third_party_accounts_url(self):
         return self.server_url + '/api/v2.1/dtable/third-party-account/'
 
+    def _dtable_db_query_url(self):
+        return self.server_url + '/api/v1/dtables/' + self.dtable_uuid + '/query/'
+
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
         params = {
@@ -738,6 +741,21 @@ class SeaTableAPI(object):
         queryset.conditions = conditions
         queryset._execute_conditions()
         return queryset
+
+    def query(self, sql, src):
+        """
+        :param sql: str
+        :param src: src
+        :return: list
+        """
+        url = self._dtable_db_query_url()
+        json_data = {
+            'sql': sql,
+            'src': src
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data.get('results')
 
 
 class Account(object):
