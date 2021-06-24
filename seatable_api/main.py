@@ -748,6 +748,8 @@ class SeaTableAPI(object):
         :param src: src
         :return: list
         """
+        if not sql:
+            raise ValueError('sql can not be empty.')
         url = self._dtable_db_query_url()
         json_data = {
             'sql': sql,
