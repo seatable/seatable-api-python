@@ -757,6 +757,8 @@ class SeaTableAPI(object):
         }
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
+        if not data.get('success'):
+            raise Exception(data.get('error_message'))
         return data.get('results')
 
 
