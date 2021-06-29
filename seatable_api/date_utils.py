@@ -119,6 +119,12 @@ class DateUtils(object):
         return delta
 
     def emonth(self, time_str, direction=1):
+        """
+        return the last day of the next/last month of given time
+        :param time_str:
+        :param direction:
+        :return:
+        """
         dt = self._str2datetime(time_str)
         if direction == 1:
             month_dt = dt.replace(day=28) + datetime.timedelta(days=4) # some day in next month
@@ -133,63 +139,33 @@ class DateUtils(object):
         return self._isoformat(datetime.date(month_dt_year, month_dt_month, 1) + datetime.timedelta(days=days-1))
 
     def day(self, time_str):
-        """
-        返回返回一个月中的第几天的数值，介于 1 到 31 之间。
-        :param time_str:
-        :return:
-        """
         return self._str2datetime(time_str).day
 
     def days(self, time_start, time_end):
         """
-        返回两个日期之间的天数。
-        :param time_start:
-        :param time_end:
-        :return:
+        return the interval of two given date by days
         """
 
         return self.datediff(time_start, time_end, unit='D')
 
     def hour(self, time_str):
-        """
-        返回小时数值，是一个 0 (12:00 A.M.) 到 23 (11:00 P.M.) 之间的整数。
-        :param time_str:
-        :return:
-        """
         return self._str2datetime(time_str).hour
 
     def hours(self, time_start, time_end):
         """
-        返回两个日期之间的小时数。
-        :param time_start:
-        :param time_end:
-        :return:
+        return the interval of two given date by hours
         """
         return self.datediff(time_start, time_end, unit='H')
 
     def minute(self, time_str):
-        """
-        minute
-        返回分钟数值，是一个 0 到 59 之间的整数。
-        :param time_str:
-        :return:
-        """
         return self._str2datetime(time_str).minute
 
     def month(self, time_str):
-        """
-        返回月份值，是一个 1 (一月)到 12 (十二月)之间的数字。
-        :param time_str:
-        :return:
-        """
         return self._str2datetime(time_str).month
 
     def months(self, time_start, time_end):
         """
-        返回两个日期之间的月数
-        :param time_start:
-        :param time_end:
-        :return:
+        return the interval of two given date by months
         """
         return self.datediff(time_start, time_end, unit='M')
 
@@ -205,15 +181,40 @@ class DateUtils(object):
     def year(self, time_str):
         return self._str2datetime(time_str).year
 
-    def weekday(self, time_str, week_start='Monday'):
-
+    def weekday(self, time_str):
+        """
+        return the number of a day in a week, Monday=0, Tue=1, ..., Sun=6
+        :param time_str:
+        :return:
+        """
         return datetime.datetime.weekday(self._str2datetime(time_str))
 
+    def isoweekday(self, time_str):
+        """
+        return the iso number of a day in a week, Mon=1, Tue=2, ..., Sun=7
+        """
+        return datetime.datetime.isoweekday(self._str2datetime(time_str))
+
     def weeknum(self, time_str):
-        return self._str2datetime(time_str).isocalendar()[1]
+        """
+        return the week number in a year by defining the first week contains the first
+        week of a year, xxxx-01-01
+        """
+        dt = self._str2datetime(time_str)
+        dt_year = dt.year
+        dt_jan = datetime.datetime(dt_year, 1, 1)
+        days_to_second_week = 6 - self.weekday("%s-%s-%s" % (dt_year, 1, 1))
+        days_to_start = (dt - dt_jan).days
+        if days_to_start <= days_to_second_week:
+            return 1
+        else:
+            return (days_to_start - days_to_second_week) // 7 + 2
 
     def isoweeknum(self, time_str):
-        return self.weeknum(time_str)
+        """
+        return the week number by the definition of ISO datetime scheme
+        """
+        return self._str2datetime(time_str).isocalendar()[1]
 
 
 dateutils = DateUtils()
