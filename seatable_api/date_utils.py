@@ -68,7 +68,6 @@ class DateUtils(object):
 
     def datediff(self, start, end, unit='S'):
 
-        from dateutil import rrule
         dt_start = self._str2datetime(start)
         dt_end = self._str2datetime(end)
 
@@ -78,22 +77,28 @@ class DateUtils(object):
         elif unit == 'D':
             delta = (dt_end - dt_start).days
 
-        elif unit in ['M', 'Y', 'H']:
-            freq = {
-                'M': rrule.MONTHLY,
-                'Y': rrule.YEARLY,
-                'H': rrule.HOURLY
-            }.get(unit)
-            delta = rrule.rrule(
-                freq, dtstart=dt_start, until=dt_end,
-            ).count()
+        elif unit == 'M':
+            dt_start_year, dt_start_month = dt_start.year, dt_start.month
+            dt_end_year, dt_end_month = dt_end.year, dt_end.month
+            delta = (dt_end_year - dt_start_year) * 12 + (dt_end_month - dt_start_month)
+
+        elif unit == 'Y':
+            start_end_delta = (dt_end - dt_start).days
+            if start_end_delta < 365:
+                delta = 0
+            else:
+                delta = dt_end.year - dt_start.year
 
         elif unit == 'MD':
             delta = dt_end.day - dt_start.day
         elif unit == 'YM':
             delta = dt_end.month - dt_start.month
         elif unit == 'YD':
-            delta = dt_end.day - dt_start.day
+            if dt_end.month < dt_start.month:
+                dt_start_new = dt_start.replace(year=dt_end.year - 1)
+            else:
+                dt_start_new = dt_start.replace(year=dt_end.year)
+            delta = (dt_end - dt_start_new).days
         else:
             delta = None
         return delta
