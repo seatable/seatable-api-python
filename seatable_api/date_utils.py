@@ -59,7 +59,7 @@ class DateUtils(object):
         dt = datetime.date(year, month, day)
         return self._isoformat(dt)
 
-    def dateadd(self, date_str, count, unit):
+    def dateadd(self, date_str, count, unit='days'):
         dt = self._str2datetime(date_str)
         delta = self._delta(count, unit)
         if not delta:
@@ -67,39 +67,19 @@ class DateUtils(object):
         return self._isoformat(dt + delta)
 
     def datediff(self, start, end, unit='S'):
-        """
-        计算两个日期之间相隔的秒数、天数、月数或年数。
-        参数 unit 可以为 S, Y, M, D, YD, YM, MD中的一个。
-        YD, startDate 与 endDate 的日期部分之差, 忽略日期中的年份。
-        YM, startDate 与 endDate 之间月份之差, 忽略日期中的天和年份。
-        MD, startDate 与 endDate 之间天数之差, 忽略日期中的月份和年份。
 
-        dateDif("2020-01-01", "2020-01-02") = 86400
-        dateDif("2020-01-01", "2020-01-02", "S") = 86400
-        dateDif("2018-01-01", "2020-01-01", "Y") = 2
-        dateDif("2020-11-11", "2020-12-12", "M") = 1
-        dateDif("2019-06-01", "2020-08-15", "D") = 441
-        dateDif("2019-06-01", "2020-08-15", "YD") = 75
-        dateDif("2019-06-01", "2020-08-15", "YM") = 2
-        dateDif("2019-06-01", "2020-08-15", "MD") = 14
-        :param start:
-        :param end:
-        :param unit:
-        :return:
-        """
-
-        from dateutil.relativedelta import relativedelta
         from dateutil import rrule
-
         dt_start = self._str2datetime(start)
         dt_end = self._str2datetime(end)
 
         if unit == 'S':
             delta = (dt_end - dt_start).days * 3600 * 24
 
-        elif unit in ['D', 'M', 'Y', 'H']:
+        elif unit == 'D':
+            delta = (dt_end - dt_start).days
+
+        elif unit in ['M', 'Y', 'H']:
             freq = {
-                'D': rrule.DAILY,
                 'M': rrule.MONTHLY,
                 'Y': rrule.YEARLY,
                 'H': rrule.HOURLY
@@ -113,7 +93,7 @@ class DateUtils(object):
         elif unit == 'YM':
             delta = dt_end.month - dt_start.month
         elif unit == 'YD':
-            delta = relativedelta(dt_start, dt_end).days
+            delta = dt_end.day - dt_start.day
         else:
             delta = None
         return delta
@@ -145,7 +125,6 @@ class DateUtils(object):
         """
         return the interval of two given date by days
         """
-
         return self.datediff(time_start, time_end, unit='D')
 
     def hour(self, time_str):

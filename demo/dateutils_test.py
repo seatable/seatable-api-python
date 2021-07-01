@@ -5,8 +5,8 @@ from seatable_api.date_utils import dateutils
 time_str = "2020-6-15"
 time_str_s = "2020-6-15 15:23:21"
 
-time_end = "2021-4-5 13:20:00"
-time_start = "2019-5-5 17:09:35"
+time_end = "2020-5-3 13:13:13"
+time_start = "2019-6-3 20:1:12"
 
 # 1. dateutils.date
 print(dateutils.date(2020, 5, 16))  # 2020-05-16
@@ -15,17 +15,19 @@ print(dateutils.date(2020, 5, 16))  # 2020-05-16
 print(dateutils.dateadd(time_str, -2, 'years')) # 2018-06-15T00:00:00
 print(dateutils.dateadd(time_str, 3, 'months')) # 2020-09-15T00:00:00
 print(dateutils.dateadd(time_str_s, 44, 'minutes')) # 2020-06-15T16:07:21
+print(dateutils.dateadd(time_str_s, 1000, 'days')) # 2023-03-12T15:23:21
+print(dateutils.dateadd(time_str_s, 3, 'weeks')) # 2020-07-06T15:23:21
+print(dateutils.dateadd(time_str_s, -3, 'hours')) # 2020-06-15T12:23:21
+print(dateutils.dateadd(time_str_s, 3, 'seconds')) # 2020-06-15T15:23:24
 
 # 3. dateutils.datediff
-print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds -60480000
-print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # seconds -60480000
-print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 700
-print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 16797
-print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 23
-print(dateutils.datediff(start=time_start, end=time_end, unit='YD')) # relateve-days -30
-print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relateve-days -1
-print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relateve-days 0
-
+print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 38102400
+print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # years 2
+print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 441
+print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 10585
+print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 15
+print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relateve-days 2
+print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relateve-days 14
 
 # 4. dateutils.day
 print(dateutils.day(time_str_s)) # 15
@@ -61,10 +63,11 @@ print(dateutils.today()) # 2021-06-28
 print(dateutils.year(time_start)) # 2019
 
 # 15. dateutils.weekday
-print(dateutils.weekday(time_start, ))
+print(dateutils.isoweekday(time_start, ))
 
 # 16. dateutils.weeknum
 print(dateutils.weeknum(time_start)) # 19
+
 
 # 17. dateutils.isoweeknum
 print(dateutils.isoweeknum(time_end)) # 14
