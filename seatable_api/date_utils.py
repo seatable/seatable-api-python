@@ -1,6 +1,6 @@
 import datetime
 import calendar
-
+import re
 DATETIME_FORMAT = {
     "ymd": "%Y-%m-%d",
     "ymd_h": "%Y-%m-%d %H",
@@ -33,6 +33,7 @@ class DateUtils(object):
         return format_type
 
     def _str2datetime(self, date_str):
+        date_str = date_str.replace("T", " ")
         format_type = self._get_format_type(date_str)
         if not format_type:
             raise ValueError('invalid time format')
