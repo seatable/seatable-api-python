@@ -25,6 +25,9 @@ class SocketIO(object):
 
         self.sio.connect(self.dtable_ws_url)
 
+    def _dis_connect(self):
+        self.sio.disconnect()
+
     def _refresh_jwt_token(self):
         self.base.auth()
         print(datetime.now(), '[ SeaTable SocketIO JWT token refreshed ]')

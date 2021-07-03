@@ -761,6 +761,12 @@ class SeaTableAPI(object):
             raise Exception(data.get('error_message'))
         return data.get('results')
 
+    def close(self):
+        if self.socketIO:
+            self.socketIO._dis_connect()
+            return {'is_closed': True}
+        raise Exception('close invalid')
+
 
 class Account(object):
     def __init__(self, login_name, password, server_url):
