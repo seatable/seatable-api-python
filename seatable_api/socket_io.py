@@ -4,14 +4,26 @@ from datetime import datetime
 # https://python-socketio.readthedocs.io
 import socketio
 
-from .constants import JOIN_ROOM, UPDATE_DTABLE, NEW_NOTIFICATION, SERVER_DISMATCH
+from .constants import JOIN_ROOM, UPDATE_DTABLE, NEW_NOTIFICATION
+
+
+class SIO(socketio.Client):
+
+    def _handle_disconnect(self, namespace):
+        """io server disconnect"""
+        self.logger.info('Engine.IO connection disconnected')
+        if not self.connected:
+            return
+        self.disconnect()
+        namespace = namespace or '/'
+        self._trigger_event('io-disconnect', namespace=namespace)
 
 
 class SocketIO(object):
 
     def __init__(self, base):
         self.base = base
-        self.sio = socketio.Client(request_timeout=base.timeout)
+        self.sio = SIO(request_timeout=base.timeout)
 
     def __str__(self):
         return '<SeaTable SocketIO [ %s ]>' % self.base.dtable_name
@@ -19,8 +31,8 @@ class SocketIO(object):
     def _connect(self):
         self.sio.on('connect', self._on_connect)
         self.sio.on('disconnect', self._on_disconnect)
+        self.sio.on('io-disconnect', self._on_io_disconnect)
         self.sio.on('connect_error', self._on_connect_error)
-        self.sio.on(SERVER_DISMATCH, self._on_server_dismatch)
         self.sio.on(UPDATE_DTABLE, self.on_update_dtable)
         self.sio.on(NEW_NOTIFICATION, self.on_new_notification)
 
@@ -42,15 +54,14 @@ class SocketIO(object):
     def _on_disconnect(self):
         print(datetime.now(), '[ SeaTable SocketIO connection dropped ]')
 
-    def _on_connect_error(self, error_msg):
-        print(datetime.now(), '[ SeaTable SocketIO connection error ]', error_msg)
-
-    def _on_server_dismatch(self):
-        print(datetime.now(), '[ SeaTable SocketIO server dismatch ]')
-        self.sio.disconnect()
+    def _on_io_disconnect(self):
+        print(datetime.now(), '[ SeaTable SocketIO connection disconnected ]')
         time.sleep(3)
         self._refresh_jwt_token()
         self.sio.connect(self._dtable_ws_url())
+
+    def _on_connect_error(self, error_msg):
+        print(datetime.now(), '[ SeaTable SocketIO connection error ]', error_msg)
 
     def on_update_dtable(self, data, index, *args):
         """ Default is print received data
