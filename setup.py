@@ -18,6 +18,6 @@ setup(
 
     platforms='any',
     packages=find_packages(),  # folder with __init__.py
-    install_requires=['requests', 'python-socketio<5', 'ply'],
+    install_requires=['requests', 'python-socketio<5', 'ply', 'python_dateutil'],
     classifiers=['Programming Language :: Python'],
 )

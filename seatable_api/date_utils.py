@@ -1,6 +1,8 @@
 import datetime
 import calendar
-import re
+from dateutil.relativedelta import relativedelta
+
+
 DATETIME_FORMAT = {
     "ymd": "%Y-%m-%d",
     "ymd_h": "%Y-%m-%d %H",
@@ -41,7 +43,6 @@ class DateUtils(object):
         return datetime.datetime.strptime(date_str, format_type_str)
 
     def _delta(self, count, unit):
-        from dateutil.relativedelta import relativedelta
         return {
             'years': relativedelta(years=count),
             'months': relativedelta(months=count),
