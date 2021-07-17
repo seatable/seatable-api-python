@@ -69,36 +69,28 @@ class DateUtils(object):
         return self._isoformat(dt + delta)
 
     def datediff(self, start, end, unit='S'):
-
         dt_start = self._str2datetime(start)
         dt_end = self._str2datetime(end)
 
         if unit == 'S':
             delta = (dt_end - dt_start).days * 3600 * 24
-
         elif unit == 'D':
             delta = (dt_end - dt_start).days
-
         elif unit == 'H':
-
             delta_days = (dt_end - dt_start).days
             if delta_days == 0:
                 return dt_end.hour - dt_start.hour
             return delta_days * 24 + (dt_end.hour - dt_start.hour)
-
-
         elif unit == 'M':
             dt_start_year, dt_start_month = dt_start.year, dt_start.month
             dt_end_year, dt_end_month = dt_end.year, dt_end.month
             delta = (dt_end_year - dt_start_year) * 12 + (dt_end_month - dt_start_month)
-
         elif unit == 'Y':
             start_end_delta = (dt_end - dt_start).days
             if start_end_delta < 365:
                 delta = 0
             else:
                 delta = dt_end.year - dt_start.year
-
         elif unit == 'MD':
             delta = dt_end.day - dt_start.day
         elif unit == 'YM':

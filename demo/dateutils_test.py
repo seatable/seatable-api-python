@@ -1,4 +1,4 @@
-from seatable_api.date_utils import dateutils
+from seatable_api import dateutils
 
 # test the functions of date utils
 
@@ -26,8 +26,8 @@ print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # years 0
 print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 334
 print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 8009
 print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 11
-print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relateve-month -1
-print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relateve-days 0
+print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relative-month -1
+print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relative-days 0
 
 # 4. dateutils.day
 print(dateutils.day(time_str_s)) # 15
@@ -63,7 +63,7 @@ print(dateutils.today()) # 2021-06-28
 print(dateutils.year(time_start)) # 2019
 
 # 15. dateutils.weekday
-print(dateutils.isoweekday(time_start),'ccccc') #1
+print(dateutils.isoweekday(time_start)) #1
 
 # 16. dateutils.weeknum
 print(dateutils.weeknum(time_start)) # 23
