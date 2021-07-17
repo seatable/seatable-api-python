@@ -21,34 +21,34 @@ print(dateutils.dateadd(time_str_s, -3, 'hours')) # 2020-06-15T12:23:21
 print(dateutils.dateadd(time_str_s, 3, 'seconds')) # 2020-06-15T15:23:24
 
 # 3. dateutils.datediff
-print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 38102400
-print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # years 2
-print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 441
-print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 10585
-print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 15
-print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relateve-days 2
-print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relateve-days 14
+print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 28857600
+print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # years 0
+print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 334
+print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 8009
+print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 11
+print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relateve-month -1
+print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relateve-days 0
 
 # 4. dateutils.day
 print(dateutils.day(time_str_s)) # 15
 
 # 5. dateutils.days
-print(dateutils.days(time_start, time_end)) # 700
+print(dateutils.days(time_start, time_end)) # 334
 
 # 6. dateutils.hour
-print(dateutils.hour(time_start)) # 17
+print(dateutils.hour(time_start)) # 20
 
 # 7. dateutils.hours
-print(dateutils.hours(time_start, time_end)) # 16797
+print(dateutils.hours(time_start, time_end)) # 8009
 
 # 8. dateutils.minute
-print(dateutils.minute(time_start)) # 9
+print(dateutils.minute(time_start)) # 1
 
 # 9. dateutils.month
 print(dateutils.month(time_str_s)) # 6
 
 # 10. dateutils.months
-print(dateutils.months(time_start, time_end)) # 23
+print(dateutils.months(time_start, time_end)) # 11
 
 # 11. dateutils.second
 print(dateutils.second(time_str_s)) # 21
@@ -63,18 +63,18 @@ print(dateutils.today()) # 2021-06-28
 print(dateutils.year(time_start)) # 2019
 
 # 15. dateutils.weekday
-print(dateutils.isoweekday(time_start, ))
+print(dateutils.isoweekday(time_start),'ccccc') #1
 
 # 16. dateutils.weeknum
-print(dateutils.weeknum(time_start)) # 19
+print(dateutils.weeknum(time_start)) # 23
 
 
 # 17. dateutils.isoweeknum
-print(dateutils.isoweeknum(time_end)) # 14
+print(dateutils.isoweeknum(time_end)) # 18
 
 
 # 18. dateutils.emonth
-print(dateutils.emonth('2020-3-25', direction=-1)) # 2021-02-28
+print(dateutils.emonth('2020-3-25', direction=-1)) # 2021-02-29
 print(dateutils.emonth('2021-3-25', direction=1)) # 2021-04-30
 
 

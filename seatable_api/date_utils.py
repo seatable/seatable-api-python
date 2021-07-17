@@ -79,6 +79,14 @@ class DateUtils(object):
         elif unit == 'D':
             delta = (dt_end - dt_start).days
 
+        elif unit == 'H':
+
+            delta_days = (dt_end - dt_start).days
+            if delta_days == 0:
+                return dt_end.hour - dt_start.hour
+            return delta_days * 24 + (dt_end.hour - dt_start.hour)
+
+
         elif unit == 'M':
             dt_start_year, dt_start_month = dt_start.year, dt_start.month
             dt_end_year, dt_end_month = dt_end.year, dt_end.month
