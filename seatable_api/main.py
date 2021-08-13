@@ -449,13 +449,21 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def batch_update_links(self, links):
+    def batch_update_links(self, link_id, table_id, other_table_id, row_id_list, other_rows_ids_map):
         """
-        :param links: list
+        :param link_id: str
+        :param table_id: str
+        :param other_table_id: str
+        :param row_id_list: []
+        :param other_rows_ids_map: dict
         """
         url = self._batch_update_row_link_server_url()
         json_data = {
-            'links': links
+            'link_id': link_id,
+            'table_id': table_id,
+            'other_table_id': other_table_id,
+            'row_id_list': row_id_list,
+            'other_rows_ids_map': other_rows_ids_map,
         }
 
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
