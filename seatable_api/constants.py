@@ -19,6 +19,7 @@ DELETE_COLUMN = 'delete_column'
 ##### column types #####
 @unique
 class ColumnTypes(Enum):
+    DEFAULT = 'default'
     NUMBER = 'number'
     TEXT = 'text'
     CHECKBOX = 'checkbox'
@@ -31,6 +32,7 @@ class ColumnTypes(Enum):
     COLLABORATOR = 'collaborator'
     LINK = 'link'
     FORMULA = 'formula'
+    LINK_FORMULA = 'link-formula'
     CREATOR = 'creator'
     CTIME = 'ctime'
     LAST_MODIFIER = 'last-modifier'
@@ -38,3 +40,7 @@ class ColumnTypes(Enum):
     GEOLOCATION = 'geolocation'
     AUTO_NUMBER = 'auto-number'
     URL = 'url'
+    EMAIL = 'email'
+    DURATION = 'duration'
+    BUTTON = 'button'
+    RATE = 'rate'
