@@ -21,9 +21,29 @@ ColumnTypes.BARCODE = 'barcode'
 
 class LinksConvertor(object):
 
-    def convert(self, columns, airtable_rows):
-        rows = self.gen_rows(columns, airtable_rows)
-        return rows
+    def convert(self, column_name, link_data, airtable_rows):
+        links = self.gen_links(column_name, link_data, airtable_rows)
+        return links
+
+    def gen_links(self, column_name, link_data, airtable_rows):
+        row_id_list = []
+        other_rows_ids_map = {}
+        try:
+            for row in airtable_rows:
+                row_id = row['_id']
+                link = row[column_name]
+                row_id_list.append(row_id)
+                other_rows_ids_map[row_id] = link
+        except Exception as e:
+            print('[Warning] gen links error:', e)
+        links = {
+            'link_id': link_data['link_id'],
+            'table_id': link_data['table_id'],
+            'other_table_id': link_data['other_table_id'],
+            'row_id_list': row_id_list,
+            'other_rows_ids_map': other_rows_ids_map,
+        }
+        return links
 
 
 class RowsConvertor(object):
@@ -49,14 +69,14 @@ class RowsConvertor(object):
                 } for item in value]
 
     def parse_multiple_select(self, value):
-        if isinstance(value[0], str):
-            return value
-        # collaborators
-        collaborators = []
         if isinstance(value[0], list):
+            # collaborators
+            collaborators = []
             for item in value:
                 collaborators.append(item['name'])
-        return collaborators
+            return collaborators
+        else:
+            return [str(item) for item in value]
 
     def parse_text(self, value):
         if isinstance(value, dict):
@@ -124,7 +144,7 @@ class RowsConvertor(object):
             else:
                 cell_data = str(value)
         except Exception as e:
-            print('[Error] gen cell data error:', e)
+            print('[Warning] gen cell data error:', e)
             cell_data = str(value)
         return cell_data
 
@@ -146,6 +166,10 @@ class RowsConvertor(object):
 
 
 class ColumnsParser(object):
+    """Airtable field types
+    https://support.airtable.com/hc/en-us/articles/360055885353-Field-types-reference
+    https://airtable.com/api/meta
+    """
 
     def parse(self, link_map, table_name, airtable_rows):
         value_map = self.get_value_map(airtable_rows)
@@ -191,13 +215,13 @@ class ColumnsParser(object):
             # elif column_type == ColumnTypes.DATE and len(values[0]) == 24:
             #     column_data = {'format': 'YYYY-MM-DD HH:mm'}
             elif column_type == ColumnTypes.LINK:
-                link = link_map[table_name][column_name]
-                other_table_name = link[2]
+                other_table_name = link_map[table_name][column_name]
                 column_data = {'other_table': other_table_name}
             elif column_type == ColumnTypes.MULTIPLE_SELECT:
                 multiple_list = []
                 for value in values:
                     for item in value:
+                        item = str(item)
                         if item not in multiple_list:
                             multiple_list.append(item)
                 column_data = self.get_multiple_select_data(multiple_list)
@@ -214,7 +238,7 @@ class ColumnsParser(object):
                                 multiple_list.append(name)
                     column_data = self.get_multiple_select_data(multiple_list)
         except Exception as e:
-            print('[Error] get column data error:', e)
+            print('[Warning] get column data error:', e)
         return column_type, column_data
 
     def get_column_type(self, values):
@@ -222,7 +246,7 @@ class ColumnsParser(object):
         try:
             type_list = []
             for value in values:
-                # boolean
+                # bool
                 if value is True:
                     column_type = ColumnTypes.CHECKBOX
                 # number
@@ -252,16 +276,15 @@ class ColumnsParser(object):
                 elif isinstance(value, list):
                     if not value:
                         continue
-                    elif isinstance(value[0], str):
-                        if value[0].startswith('rec'):
-                            column_type = ColumnTypes.LINK
-                        else:
-                            column_type = ColumnTypes.MULTIPLE_SELECT
+                    elif isinstance(value[0], str) and value[0].startswith('rec'):
+                        column_type = ColumnTypes.LINK
                     elif isinstance(value[0], dict):
                         if 'email' in value[0]:
                             column_type = ColumnTypes.COLLABORATOR
                         elif 'filename' in value[0]:
                             column_type = ColumnTypes.FILE
+                    else:  # str, number, boole
+                        column_type = ColumnTypes.MULTIPLE_SELECT
                 # dict
                 elif isinstance(value, dict):
                     if not value:
@@ -277,7 +300,7 @@ class ColumnsParser(object):
             column_type = max(
                 type_list, key=type_list.count) if type_list else ColumnTypes.TEXT
         except Exception as e:
-            print('[Error] get column type error:', e)
+            print('[Warning] get column type error:', e)
         return column_type
 
     def gen_columns(self, link_map, table_name, value_map):
@@ -331,7 +354,7 @@ class AirtableAPI(object):
             rows, offset = self.list_rows(table_name, offset)
             all_rows.extend(rows)
             print(
-                '[Info] Got [ %s ] rows in Airtable <%s>' % (len(rows), table_name))
+                '[Info] Got [ %s ] rows in Airtable <%s>' % (len(all_rows), table_name))
             if not offset:
                 break
             time.sleep(0.5)
@@ -407,16 +430,18 @@ class AirtableConvertor(object):
         print('[Info] Convert rows success\n')
 
     def convert_links(self):
-        if not self.links:
+        if not self.link_map:
             return
         self.get_airtable_row_map()
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
-            airtable_rows = self.airtable_row_map[table_name]
-            links = self.links_convertor.convert(
-                self.tables, columns, airtable_rows)
-            self.batch_append_links(table_name, links)
-            time.sleep(1)
+            table = self.table_map[table_name]
+            for column_name in column_names:
+                link_data = table[column_name]['data']
+                links = self.links_convertor.convert(
+                    column_name, link_data, self.airtable_row_map[table_name])
+                self.batch_append_links(table_name, links)
+                time.sleep(1)
         print('[Info] Convert links success\n')
 
     def get_link_map(self):
@@ -424,9 +449,10 @@ class AirtableConvertor(object):
         for link in self.links:
             table_name = link[0]
             column_name = link[1]
+            other_table_name = link[2]
             if not self.link_map.get(table_name):
                 self.link_map[table_name] = {}
-            self.link_map[table_name][column_name] = link
+            self.link_map[table_name][column_name] = other_table_name
         return self.link_map
 
     def get_airtable_row_map(self):
@@ -443,10 +469,7 @@ class AirtableConvertor(object):
         self.table_map = {}
         for table in self.tables:
             table_name = table['name']
-            self.table_map[table_name] = {
-                '_id': table['_id'],
-                'name': table_name,
-            }
+            self.table_map[table_name] = {'_id': table['_id']}
             for column in table['columns']:
                 column_name = column['name']
                 self.table_map[table_name][column_name] = column
@@ -469,7 +492,7 @@ class AirtableConvertor(object):
     def batch_append_rows(self, table_name, rows):
         offset = 0
         while True:
-            row_split = rows[offset: LIMIT]
+            row_split = rows[offset: offset + LIMIT]
             offset = offset + LIMIT
             if not row_split:
                 break
@@ -478,6 +501,22 @@ class AirtableConvertor(object):
                 '[Info] Appended [ %s ] rows to table <%s>' % (len(row_split), table_name))
             time.sleep(0.5)
 
-    def batch_append_links(self, table_name, rows):
-        self.base.batch_update_links(
-            link_id, table_id, other_table_id, row_id_list, other_rows_ids_map)
+    def batch_append_links(self, table_name, links):
+        link_id = links['link_id']
+        table_id = links['table_id']
+        other_table_id = links['other_table_id']
+        row_id_list = links['row_id_list']
+        other_rows_ids_map = links['other_rows_ids_map']
+        offset = 0
+        while True:
+            row_id_split = row_id_list[offset: offset + LIMIT]
+            offset = offset + LIMIT
+            if not row_id_split:
+                break
+            other_rows_ids_map_split = {
+                row_id: other_rows_ids_map[row_id] for row_id in row_id_split}
+            self.base.batch_update_links(
+                link_id, table_id, other_table_id, row_id_split, other_rows_ids_map_split)
+            print(
+                '[Info] Added [ %s ] Links to table <%s>' % (len(row_id_split), table_name))
+            time.sleep(0.5)
