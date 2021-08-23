@@ -22,8 +22,8 @@ table_names = ['Design projects', 'Tasks', 'Clients']
 
 # links in Airtable: [('table_name', 'column_name', 'other_table_name')]
 links = [
-    ('Design projects', 'clients', 'Clients'),
-    ('Design projects', 'tasks', 'Tasks'),
+    ('Design projects', 'client', 'Clients'),
+    ('Design projects', 'task', 'Tasks'),
 ]
 
 convertor = AirtableConvertor(
@@ -34,4 +34,11 @@ convertor = AirtableConvertor(
     links,
 )
 
-convertor.auto_convert()
+# First import metadata: tables, columns, demo rows
+convertor.convert_metadata()
+
+# Then modify columns manually in the SeaTable webpage
+# eg: TEXT -> SINGLE_SELECT, NUMBER -> RATE, FILE -> IMAGE
+
+# Finally import data: rows, links 
+convertor.convert_data()

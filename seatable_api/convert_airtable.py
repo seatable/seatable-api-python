@@ -13,6 +13,7 @@ LINK_REG_2 = r'^<(\S+)>$'
 IMAGE_REG_1 = r'^<img src="(\S+)" .+\/>'
 IMAGE_REG_2 = r'^!\[\]\((\S+)\)'
 LIMIT = 1000
+TEXT_COLOR = '#FFFFFF'
 DATE_FORMAT = '%Y-%m-%d'
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 AIRTABLE_API_URL = 'https://api.airtable.com/v0/'
@@ -31,7 +32,9 @@ class LinksConvertor(object):
         try:
             for row in airtable_rows:
                 row_id = row['_id']
-                link = row[column_name]
+                link = row.get(column_name)
+                if not link:
+                    continue
                 row_id_list.append(row_id)
                 other_rows_ids_map[row_id] = link
         except Exception as e:
@@ -60,6 +63,9 @@ class RowsConvertor(object):
             value = str(datetime.strptime(value, DATETIME_FORMAT))
         return value
 
+    def parse_image(self, value):
+        return [item['url'] for item in value]
+
     def parse_file(self, value):
         return [{
                 'name': item['filename'],
@@ -68,22 +74,24 @@ class RowsConvertor(object):
                 'url': item['url'],
                 } for item in value]
 
+    def parse_single_select(self, value):
+        if isinstance(value, dict) and 'name' in value:
+            return value['name']  # collaborator
+        value = str(value)
+        return value
+
     def parse_multiple_select(self, value):
-        if isinstance(value[0], list):
-            # collaborators
+        if isinstance(value[0], dict):
             collaborators = []
             for item in value:
                 collaborators.append(item['name'])
-            return collaborators
+            return collaborators  # collaborators
         else:
             return [str(item) for item in value]
 
     def parse_text(self, value):
-        if isinstance(value, dict):
-            if 'name' in value:  # collaborator
-                return value['name']
-            elif 'text' in value:  # barcode
-                return value['text']
+        if isinstance(value, dict) and 'text' in value:
+            return value['text']  # barcode
         value = str(value)
         return value
 
@@ -119,18 +127,10 @@ class RowsConvertor(object):
         try:
             if column_type == ColumnTypes.CHECKBOX:
                 cell_data = value
-            elif column_type == (
-                    ColumnTypes.NUMBER, ColumnTypes.AUTO_NUMBER, ColumnTypes.DURATION, ColumnTypes.RATE):
+            elif column_type == (ColumnTypes.NUMBER, ColumnTypes.DURATION, ColumnTypes.RATE):
                 cell_data = value
-            elif column_type in (
-                    ColumnTypes.SINGLE_SELECT, ColumnTypes.URL, ColumnTypes.EMAIL):
-                cell_data = value
-            elif column_type == ColumnTypes.LINK:
-                cell_data = None
-            elif column_type == ColumnTypes.BUTTON:
-                cell_data = None
-            elif column_type == ColumnTypes.COLLABORATOR:
-                cell_data = None
+            elif column_type in (ColumnTypes.URL, ColumnTypes.EMAIL):
+                cell_data = str(value)
             elif column_type == ColumnTypes.TEXT:
                 cell_data = self.parse_text(value)
             elif column_type == ColumnTypes.LONG_TEXT:
@@ -139,9 +139,25 @@ class RowsConvertor(object):
                 cell_data = self.parse_date(value)
             elif column_type == ColumnTypes.FILE:
                 cell_data = self.parse_file(value)
+            elif column_type == ColumnTypes.IMAGE:
+                cell_data = self.parse_image(value)
+            elif column_type == ColumnTypes.SINGLE_SELECT:
+                cell_data = self.parse_single_select(value)
             elif column_type == ColumnTypes.MULTIPLE_SELECT:
                 cell_data = self.parse_multiple_select(value)
-            else:
+            elif column_type == ColumnTypes.LINK:
+                cell_data = None
+            elif column_type == ColumnTypes.BUTTON:
+                cell_data = None
+            elif column_type == ColumnTypes.GEOLOCATION:
+                cell_data = None
+            elif column_type in (ColumnTypes.COLLABORATOR, ColumnTypes.CREATOR, ColumnTypes.LAST_MODIFIER):
+                cell_data = None
+            elif column_type in (ColumnTypes.CTIME, ColumnTypes.MTIME):
+                cell_data = None
+            elif column_type in (ColumnTypes.FORMULA, ColumnTypes.LINK_FORMULA, ColumnTypes.AUTO_NUMBER):
+                cell_data = None
+            else:  # DEFAULT
                 cell_data = str(value)
         except Exception as e:
             print('[Warning] gen cell data error:', e)
@@ -176,15 +192,10 @@ class ColumnsParser(object):
         columns = self.gen_columns(link_map, table_name, value_map)
         return columns
 
-    def get_value_map(self, airtable_rows):
-        value_map = {}
-        for row in airtable_rows:
-            for column_name, value in row.items():
-                if column_name not in value_map:
-                    value_map[column_name] = []
-                if value is not None:
-                    value_map[column_name].append(value)
-        return value_map
+    def parse_select(self, columns, airtable_rows):
+        select_value_map = self.get_select_value_map(columns, airtable_rows)
+        select_columns = self.gen_select_columns(select_value_map)
+        return select_columns
 
     def random_color(self):
         color_str = '0123456789ABCDEF'
@@ -200,12 +211,23 @@ class ColumnsParser(object):
             num += random.choice(num_str)
         return num
 
-    def get_multiple_select_data(self, multiple_list):
+    def get_value_map(self, airtable_rows):
+        value_map = {}
+        for row in airtable_rows:
+            for column_name, value in row.items():
+                if column_name not in value_map:
+                    value_map[column_name] = []
+                if value is not None:
+                    value_map[column_name].append(value)
+        return value_map
+
+    def get_select_data(self, select_list):
         return {'options': [{
             'name': value,
             'id': self.random_num_id(),
-            'color': self.random_color()
-        } for value in multiple_list]}
+            'color': self.random_color(),
+            'textColor': TEXT_COLOR,
+        } for value in select_list]}
 
     def get_column_data(self, link_map, table_name, column_name, column_type, values):
         column_data = None
@@ -218,25 +240,31 @@ class ColumnsParser(object):
                 other_table_name = link_map[table_name][column_name]
                 column_data = {'other_table': other_table_name}
             elif column_type == ColumnTypes.MULTIPLE_SELECT:
-                multiple_list = []
+                select_list = []
                 for value in values:
                     for item in value:
                         item = str(item)
-                        if item not in multiple_list:
-                            multiple_list.append(item)
-                column_data = self.get_multiple_select_data(multiple_list)
+                        if item not in select_list:
+                            select_list.append(item)
+                column_data = self.get_select_data(select_list)
             elif column_type == ColumnTypes.COLLABORATOR:
                 if isinstance(values[0], dict):
-                    column_type = ColumnTypes.TEXT
+                    column_type = ColumnTypes.SINGLE_SELECT
+                    select_list = []
+                    for value in values:
+                        name = value['name']
+                        if name not in select_list:
+                            select_list.append(name)
+                    column_data = self.get_select_data(select_list)
                 elif isinstance(values[0], list):
                     column_type = ColumnTypes.MULTIPLE_SELECT
-                    multiple_list = []
+                    select_list = []
                     for value in values:
                         for item in value:
                             name = item['name']
-                            if name not in multiple_list:
-                                multiple_list.append(name)
-                    column_data = self.get_multiple_select_data(multiple_list)
+                            if name not in select_list:
+                                select_list.append(name)
+                    column_data = self.get_select_data(select_list)
         except Exception as e:
             print('[Warning] get column data error:', e)
         return column_type, column_data
@@ -306,7 +334,7 @@ class ColumnsParser(object):
     def gen_columns(self, link_map, table_name, value_map):
         columns = []
         for column_name, values in value_map.items():
-            if column_name in ('_id', 'Name', '名称'):
+            if column_name == '_id':
                 continue
             column_type = self.get_column_type(values)
             column_type, column_data = self.get_column_data(
@@ -318,6 +346,44 @@ class ColumnsParser(object):
             }
             columns.append(column)
         return columns
+
+    # Select
+    def get_select_value_map(self, columns, airtable_rows):
+        select_value_map = {}
+        for row in airtable_rows:
+            for column_name, value in row.items():
+                if column_name == '_id':
+                    continue
+                column = columns.get(column_name)
+                if not column:
+                    continue
+                column_type = ColumnTypes(column['type'])
+                if column_type not in (ColumnTypes.SINGLE_SELECT, ColumnTypes.MULTIPLE_SELECT):
+                    continue
+                if column_name not in select_value_map:
+                    select_value_map[column_name] = []
+                if value is not None and value not in select_value_map[column_name]:
+                    select_value_map[column_name].append(value)
+        return select_value_map
+
+    def get_select_options(self, select_list):
+        return [{
+            'name': value,
+            'id': self.random_num_id(),
+            'color': self.random_color(),
+            'textColor': TEXT_COLOR,
+        } for value in select_list]
+
+    def gen_select_columns(self, select_value_map):
+        select_columns = []
+        for column_name, values in select_value_map.items():
+            options = self.get_select_options(values)
+            column = {
+                'name': column_name,
+                'options': options,
+            }
+            select_columns.append(column)
+        return select_columns
 
 
 class AirtableAPI(object):
@@ -378,33 +444,38 @@ class AirtableConvertor(object):
         self.columns_parser = ColumnsParser()
         self.rows_convertor = RowsConvertor()
         self.links_convertor = LinksConvertor()
-        self.parse_columns_by_all_rows = False
-        self.airtable_row_map = {}
         self.get_link_map()
 
-    def auto_convert(self):
+    def convert_metadata(self):
         self.convert_tables()
+        self.get_airtable_row_map(is_demo=True)
         self.convert_columns()
+        self.convert_rows(is_demo=True)
+        self.convert_links(is_demo=True)
+
+    def convert_data(self):
+        self.delete_demo_rows()
+        self.get_airtable_row_map()
+        self.convert_select_columns()
         self.convert_rows()
         self.convert_links()
 
     def convert_tables(self):
+        print('[Info] Convert tables')
         self.get_table_map()
         for table_name in self.table_names:
             table = self.table_map.get(table_name)
             if not table:
                 self.add_table(table_name)
                 print('[Info] Added table [ %s ]' % table_name)
+        print('[Info] Success\n')
         time.sleep(1)
-        print('[Info] Convert tables success\n')
 
     def convert_columns(self):
+        print('[Info] Convert columns')
         self.get_table_map()
         for table_name in self.table_names:
-            if self.parse_columns_by_all_rows:
-                airtable_rows = self.airtable_api.list_all_rows(table_name)
-            else:
-                airtable_rows, offset = self.airtable_api.list_rows(table_name)
+            airtable_rows = self.airtable_row_map[table_name]
             columns = self.columns_parser.parse(
                 self.link_map, table_name, airtable_rows)
             table = self.table_map.get(table_name)
@@ -416,23 +487,24 @@ class AirtableConvertor(object):
                         table_name, column_name, column['type'], column['data'])
                     print(
                         '[Info] Added column [ %s ] to table <%s>' % (column['name'], table_name))
-            time.sleep(1)
-        print('[Info] Convert columns success\n')
+        print('[Info] Success\n')
+        time.sleep(1)
 
-    def convert_rows(self):
-        self.get_airtable_row_map()
+    def convert_rows(self, is_demo=False):
+        print('[Info] Convert %s rows' % ('demo' if is_demo else ''))
+        self.get_table_map()
         for table_name in self.table_names:
             airtable_rows = self.airtable_row_map[table_name]
-            columns = self.list_columns(table_name)
+            columns = self.column_map[table_name]
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
-            time.sleep(1)
-        print('[Info] Convert rows success\n')
+        print('[Info] Success\n')
+        time.sleep(1)
 
-    def convert_links(self):
+    def convert_links(self, is_demo=False):
         if not self.link_map:
             return
-        self.get_airtable_row_map()
+        print('[Info] Convert %s links' % ('demo' if is_demo else ''))
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
             table = self.table_map[table_name]
@@ -441,8 +513,35 @@ class AirtableConvertor(object):
                 links = self.links_convertor.convert(
                     column_name, link_data, self.airtable_row_map[table_name])
                 self.batch_append_links(table_name, links)
-                time.sleep(1)
-        print('[Info] Convert links success\n')
+        print('[Info] Success\n')
+        time.sleep(1)
+
+    def delete_demo_rows(self):
+        print('[Info] Delete demo rows')
+        for table_name in self.table_names:
+            rows = self.list_rows(table_name)
+            if rows:
+                row_ids = [row['_id'] for row in rows]
+                self.batch_delete_rows(table_name, row_ids)
+        print('[Info] Success\n')
+        time.sleep(1)
+
+    def convert_select_columns(self):
+        print('[Info] Convert select columns')
+        self.get_table_map()
+        for table_name in self.table_names:
+            columns = self.table_map[table_name]
+            airtable_rows = self.airtable_row_map[table_name]
+            select_columns = self.columns_parser.parse_select(
+                columns, airtable_rows)
+            for column in select_columns:
+                column_name = column['name']
+                options = column['options']
+                self.add_column_options(table_name, column_name, options)
+                print(
+                    '[Info] Added options to column [ %s ] in table <%s>' % (column_name, table_name))
+        print('[Info] Success\n')
+        time.sleep(1)
 
     def get_link_map(self):
         self.link_map = {}
@@ -455,39 +554,65 @@ class AirtableConvertor(object):
             self.link_map[table_name][column_name] = other_table_name
         return self.link_map
 
-    def get_airtable_row_map(self):
-        if not self.airtable_row_map:
-            self.airtable_row_map = {}
-            for table_name in self.table_names:
+    def get_airtable_row_map(self, is_demo=False):
+        print('[Info] List Airtable %s rows' % ('demo' if is_demo else ''))
+        self.airtable_row_map = {}
+        for table_name in self.table_names:
+            if is_demo:
+                rows, offset = self.airtable_api.list_rows(table_name)
+            else:
                 rows = self.airtable_api.list_all_rows(table_name)
-                self.airtable_row_map[table_name] = rows
+            self.airtable_row_map[table_name] = rows
+        print('[Info] Success\n')
         return self.airtable_row_map
 
     def get_table_map(self):
+        self.table_map = {}
+        self.column_map = {}
         metadata = self.base.get_metadata()
         self.tables = metadata['tables']
-        self.table_map = {}
         for table in self.tables:
             table_name = table['name']
+            self.column_map[table_name] = table['columns']
             self.table_map[table_name] = {'_id': table['_id']}
             for column in table['columns']:
                 column_name = column['name']
                 self.table_map[table_name][column_name] = column
+        time.sleep(0.1)
         return self.table_map
 
     def add_table(self, table_name):
-        self.base.add_table(table_name)
+        table = self.base.add_table(table_name)
+        time.sleep(0.1)
+        return table
 
     def add_column(self, table_name, column_name, column_type, column_data):
         try:
-            self.base.insert_column(
+            column = self.base.insert_column(
                 table_name, column_name, column_type, None, column_data)
+            time.sleep(0.1)
+            return column
         except Exception as e:
             print(e)
 
+    def add_column_options(self, table_name, column_name, options):
+        column = self.base.add_column_options(table_name, column_name, options)
+        time.sleep(0.1)
+        return column
+
     def list_columns(self, table_name):
         columns = self.base.list_columns(table_name)
+        time.sleep(0.1)
         return columns
+
+    def list_rows(self, table_name):
+        rows = self.base.list_rows(table_name)
+        time.sleep(0.1)
+        return rows
+
+    def batch_delete_rows(self, table_name, row_ids):
+        self.base.batch_delete_rows(table_name, row_ids)
+        time.sleep(0.1)
 
     def batch_append_rows(self, table_name, rows):
         offset = 0
@@ -499,6 +624,18 @@ class AirtableConvertor(object):
             self.base.batch_append_rows(table_name, row_split)
             print(
                 '[Info] Appended [ %s ] rows to table <%s>' % (len(row_split), table_name))
+            time.sleep(0.5)
+
+    def batch_delete_rows(self, table_name, row_ids):
+        offset = 0
+        while True:
+            row_id_split = row_ids[offset: offset + LIMIT]
+            offset = offset + LIMIT
+            if not row_id_split:
+                break
+            self.base.batch_delete_rows(table_name, row_id_split)
+            print(
+                '[Info] Deleted [ %s ] rows in table <%s>' % (len(row_id_split), table_name))
             time.sleep(0.5)
 
     def batch_append_links(self, table_name, links):
