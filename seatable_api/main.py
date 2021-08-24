@@ -140,6 +140,9 @@ class SeaTableAPI(object):
     def _column_options_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/column-options/'
 
+    def _column_cascade_setting_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/column-cascade-settings/'
+
     def _third_party_accounts_url(self):
         return self.server_url + '/api/v2.1/dtable/third-party-account/'
 
@@ -622,6 +625,27 @@ class SeaTableAPI(object):
             "column": column,
             "options": options
         }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
+
+    def add_column_cascade_settings(self, table_name, child_column, parent_column, cascade_settings):
+        """
+
+        :param table_name:  str
+        :param child_column: str
+        :param parent_column: str
+        :param cascade_settings: dict
+        :return:
+        """
+        url = self._column_cascade_setting_server_url()
+        json_data = {
+            "table_name": table_name,
+            "child_column": child_column,
+            "parent_column": parent_column,
+            "cascade_settings": cascade_settings
+        }
+
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
