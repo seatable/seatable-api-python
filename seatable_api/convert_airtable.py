@@ -495,6 +495,8 @@ class AirtableConvertor(object):
         self.get_table_map()
         for table_name in self.table_names:
             airtable_rows = self.airtable_row_map[table_name]
+            if is_demo:
+                airtable_rows = airtable_rows[:10]
             columns = self.column_map[table_name]
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
@@ -508,10 +510,13 @@ class AirtableConvertor(object):
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
             table = self.table_map[table_name]
+            airtable_rows = self.airtable_row_map[table_name]
+            if is_demo:
+                airtable_rows = airtable_rows[:10]
             for column_name in column_names:
                 link_data = table[column_name]['data']
                 links = self.links_convertor.convert(
-                    column_name, link_data, self.airtable_row_map[table_name])
+                    column_name, link_data, airtable_rows)
                 self.batch_append_links(table_name, links)
         print('[Info] Success\n')
         time.sleep(1)
