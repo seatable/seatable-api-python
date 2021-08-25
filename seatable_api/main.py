@@ -48,6 +48,7 @@ class SeaTableAPI(object):
         self.token = token
         self.server_url = parse_server_url(server_url)
         self.dtable_server_url = None
+        self.dtable_db_url = None
         self.jwt_token = None
         self.jwt_exp = None
         self.headers = None
@@ -63,6 +64,7 @@ class SeaTableAPI(object):
     def _clone(self):
         clone = self.__class__(self.token, self.server_url)
         clone.dtable_server_url = self.dtable_server_url
+        clone.dtable_db_url = self.dtable_db_url
         clone.jwt_token = self.jwt_token
         clone.jwt_exp = self.jwt_exp
         clone.headers = self.headers
@@ -90,6 +92,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
 
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
+        self.dtable_db_url = parse_server_url(data.get('dtable_db'))
         self.jwt_token = data.get('access_token')
         self.headers = parse_headers(self.jwt_token)
         self.workspace_id = data.get('workspace_id')
@@ -147,7 +150,7 @@ class SeaTableAPI(object):
         return self.server_url + '/api/v2.1/dtable/third-party-account/'
 
     def _dtable_db_query_url(self):
-        return self.server_url + '/api/v1/dtables/' + self.dtable_uuid + '/query/'
+        return self.dtable_db_url + '/api/v1/query/' + self.dtable_uuid + '/'
 
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
@@ -774,24 +777,36 @@ class SeaTableAPI(object):
         queryset._execute_conditions()
         return queryset
 
-    def query(self, sql, src='all'):
+    def query(self, sql, convert=True):
         """
         :param sql: str
-        :param src: src
+        :param convert: bool
         :return: list
         """
         if not sql:
             raise ValueError('sql can not be empty.')
         url = self._dtable_db_query_url()
-        json_data = {
-            'sql': sql,
-            'src': src
-        }
+        json_data = {'sql': sql}
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         if not data.get('success'):
             raise Exception(data.get('error_message'))
-        return data.get('results')
+        metadata = data.get('metadata')
+        results = data.get('results')
+        if convert:
+            column_map = {column['key']: column['name'] for column in metadata}
+            converted_results = []
+            for result in results:
+                item = {}
+                for k, v in result.items():
+                    if k in column_map:
+                        item[column_map[k]] = v
+                    else:
+                        item[k] = v
+                converted_results.append(item)
+            return converted_results
+        else:
+            return results
 
 
 class Account(object):
