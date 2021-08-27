@@ -96,3 +96,45 @@ def convert_row(metadata, ws_data):
             result[column_name] = cell_value
 
     return result
+
+
+def convert_db_rows(metadata, results):
+    """ Convert dtable-db rows data to readable rows data
+
+    :param metadata: list
+    :param results: list
+    :return: list
+    """
+    converted_results = []
+    column_map = {column['key']: column for column in metadata}
+    select_map = {}
+    for column in metadata:
+            column_type = column['type']
+            if column_type in ('single-select', 'multiple-select'):
+                column_data = column['data']
+                if not column_data:
+                    continue
+                column_key = column['key']
+                column_options = column['data']['options']
+                select_map[column_key] = {
+                    select['id']: select['name'] for select in column_options}
+
+    for result in results:
+        item = {}
+        for column_key, value in result.items():
+            if column_key in column_map:
+                column = column_map[column_key]
+                column_name = column['name']
+                column_type = column['type']
+                s_map = select_map.get(column_key)
+                if column_type == 'single-select' and value and s_map:
+                    item[column_name] = s_map.get(value, value)
+                elif column_type == 'multiple-select' and value and s_map:
+                    item[column_name] = [s_map.get(s, s) for s in value]
+                else:
+                    item[column_name] = value
+            else:
+                item[column_key] = value
+        converted_results.append(item)
+
+    return converted_results
