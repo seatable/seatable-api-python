@@ -12,6 +12,7 @@ from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import SocketIO
 from .query import QuerySet
+from .utils import convert_db_rows
 
 
 def parse_headers(token):
@@ -794,16 +795,7 @@ class SeaTableAPI(object):
         metadata = data.get('metadata')
         results = data.get('results')
         if convert:
-            column_map = {column['key']: column['name'] for column in metadata}
-            converted_results = []
-            for result in results:
-                item = {}
-                for k, v in result.items():
-                    if k in column_map:
-                        item[column_map[k]] = v
-                    else:
-                        item[k] = v
-                converted_results.append(item)
+            converted_results = convert_db_rows(metadata, results)
             return converted_results
         else:
             return results
