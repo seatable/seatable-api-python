@@ -93,7 +93,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
 
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
-        self.dtable_db_url = parse_server_url(data.get('dtable_db'))
+        self.dtable_db_url = parse_server_url(data.get('dtable_db', ''))
         self.jwt_token = data.get('access_token')
         self.headers = parse_headers(self.jwt_token)
         self.workspace_id = data.get('workspace_id')
