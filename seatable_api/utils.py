@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 
 def _get_row(data):
@@ -131,6 +132,17 @@ def convert_db_rows(metadata, results):
                     item[column_name] = s_map.get(value, value)
                 elif column_type == 'multiple-select' and value and s_map:
                     item[column_name] = [s_map.get(s, s) for s in value]
+                elif column_type == 'date':
+                    try:
+                        date_value = datetime.fromisoformat(value)
+                        date_format = column['data']['format']
+                        if date_format == 'YYYY-MM-DD':
+                            value = date_value.strftime('%Y-%m-%d')
+                        else:
+                            value = date_value.strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception as e:
+                        print('[Warning] format date:', e)
+                    item[column_name] = value
                 else:
                     item[column_name] = value
             else:
