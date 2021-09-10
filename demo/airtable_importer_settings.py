@@ -19,11 +19,11 @@ table_names = ['Design projects', 'Tasks', 'Clients']
 
 
 # no links in Airtable
-link = []
+links = []
 
 
 # links in Airtable: [('table_name', 'column_name', 'other_table_name')]
 links = [
-    ('Design projects', 'client', 'Clients'),
-    ('Design projects', 'task', 'Tasks'),
+    ('Design projects', 'Client', 'Clients'),
+    ('Design projects', 'Tasks', 'Tasks'),
 ]
