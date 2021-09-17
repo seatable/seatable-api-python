@@ -598,8 +598,8 @@ class AirtableConvertor(object):
         time.sleep(0.1)
         return self.table_map
 
-    def add_table(self, table_name):
-        table = self.base.add_table(table_name)
+    def add_table(self, table_name, columns=[]):
+        table = self.base.add_table(table_name, columns=columns)
         time.sleep(0.1)
         return table
 
