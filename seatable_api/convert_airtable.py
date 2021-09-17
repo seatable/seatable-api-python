@@ -459,8 +459,9 @@ class AirtableConvertor(object):
         self.get_link_map()
 
     def convert_metadata(self):
-        self.convert_tables()
         self.get_airtable_row_map(is_demo=True)
+        self.get_airtable_column_map()
+        self.convert_tables()
         self.convert_columns()
         self.convert_rows(is_demo=True)
         self.convert_links(is_demo=True)
@@ -478,8 +479,19 @@ class AirtableConvertor(object):
         for table_name in self.table_names:
             table = self.table_map.get(table_name)
             if not table:
-                self.add_table(table_name)
-                print('[Info] Added table [ %s ]' % table_name)
+                airtable_columns = self.airtable_column_map[table_name]
+                columns = []
+                for column in airtable_columns:
+                    if column['type'] == ColumnTypes.LINK:
+                        continue
+                    item = {
+                        'column_name': column['name'],
+                        'column_type': column['type'].value,
+                        'column_data': column['data'],
+                    }
+                    columns.append(item)
+                self.add_table(table_name, columns)
+                print('[Info] Added table [ %s ] with %s columns' % (table_name, len(columns)))
         print('[Info] Success\n')
         time.sleep(1)
 
@@ -487,11 +499,9 @@ class AirtableConvertor(object):
         print('[Info] Convert columns')
         self.get_table_map()
         for table_name in self.table_names:
-            airtable_rows = self.airtable_row_map[table_name]
-            columns = self.columns_parser.parse(
-                self.link_map, table_name, airtable_rows)
+            airtable_columns = self.airtable_column_map[table_name]
             table = self.table_map.get(table_name)
-            for column in columns:
+            for column in airtable_columns:
                 column_name = column['name']
                 exists_column = table.get(column_name)
                 if not exists_column:
@@ -582,6 +592,14 @@ class AirtableConvertor(object):
             self.airtable_row_map[table_name] = rows
         print('[Info] Success\n')
         return self.airtable_row_map
+
+    def get_airtable_column_map(self):
+        self.airtable_column_map = {}
+        for table_name in self.table_names:
+            airtable_rows = self.airtable_row_map[table_name]
+            columns = self.columns_parser.parse(
+                self.link_map, table_name, airtable_rows)
+            self.airtable_column_map[table_name] = columns
 
     def get_table_map(self):
         self.table_map = {}
