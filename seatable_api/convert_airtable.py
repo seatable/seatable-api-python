@@ -223,7 +223,7 @@ class ColumnsParser(object):
 
     def get_select_data(self, select_list):
         return {'options': [{
-            'name': value,
+            'name': str(value),
             'id': self.random_num_id(),
             'color': self.random_color(),
             'textColor': TEXT_COLOR,
@@ -355,20 +355,32 @@ class ColumnsParser(object):
                 if column_name == '_id':
                     continue
                 column = columns.get(column_name)
-                if not column:
+                if not column or not value:
                     continue
                 column_type = ColumnTypes(column['type'])
                 if column_type not in (ColumnTypes.SINGLE_SELECT, ColumnTypes.MULTIPLE_SELECT):
                     continue
                 if column_name not in select_value_map:
                     select_value_map[column_name] = []
-                if value is not None and value not in select_value_map[column_name]:
-                    select_value_map[column_name].append(value)
+                items = []
+                if isinstance(value, dict):
+                    items.append(value.get('name', ''))  # collaborator
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, dict):
+                            items.append(item.get('name', ''))  # collaborator
+                        else:
+                            items.append(item)
+                else:
+                    items.append(value)
+                for item in items:
+                    if item not in select_value_map[column_name]:
+                        select_value_map[column_name].append(item)
         return select_value_map
 
     def get_select_options(self, select_list):
         return [{
-            'name': value,
+            'name': str(value),
             'id': self.random_num_id(),
             'color': self.random_color(),
             'textColor': TEXT_COLOR,
