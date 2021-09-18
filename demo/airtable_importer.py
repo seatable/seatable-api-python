@@ -3,18 +3,19 @@
 import sys
 from seatable_api import Base, AirtableConvertor
 from airtable_importer_settings import server_url, api_token, airtable_api_key, airtable_base_id, \
-    table_names, links
+    table_names, first_columns, links
 
 
 def get_convertor():
     base = Base(api_token, server_url)
     base.auth()
     convertor = AirtableConvertor(
-        airtable_api_key,
-        airtable_base_id,
-        base,
-        table_names,
-        links,
+        airtable_api_key=airtable_api_key,
+        airtable_base_id=airtable_base_id,
+        base=base,
+        table_names=table_names,
+        first_columns=first_columns,
+        links=links,
     )
     return convertor
 

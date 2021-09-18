@@ -14,8 +14,18 @@ airtable_api_key = 'airtable api key'
 airtable_base_id = 'airtable base id'
 
 
-# table names in Airtable [('name_of_table_1', 'name_of_table_2', '...'])
+# table names in Airtable ['name_of_table_1', 'name_of_table_2', '...']
 table_names = ['Design projects', 'Tasks', 'Clients']
+
+
+# first columns in Airtable [('table_name', 'first_column_name')]
+# The first column ensures the correct display of the links
+# if there are no links in all tables, you still have to provide "first_columns = []"
+first_columns = [
+    ('Design projects', 'Name'),
+    ('Tasks', 'Name'),
+    ('Clients', 'Name'),
+]
 
 
 # links in Airtable: [('table_name', 'column_name', 'other_table_name')]

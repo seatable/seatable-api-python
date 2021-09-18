@@ -185,16 +185,19 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('metadata')
 
-    def add_table(self, table_name, lang='en'):
+    def add_table(self, table_name, lang='en', columns=[]):
         """
         :param table_name: str
         :param lang: str, currently 'en' for English, and 'zh-cn' for Chinese
+        :param columns: list
         """
         url = self._table_server_url()
         json_data = {
             'table_name': table_name,
             'lang': lang,
         }
+        if columns:
+            json_data['columns'] = columns
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
