@@ -16,6 +16,8 @@ LIMIT = 1000
 TEXT_COLOR = '#FFFFFF'
 DATE_FORMAT = '%Y-%m-%d'
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+FIRST_COLUMN_TYPES = [
+    ColumnTypes.TEXT, ColumnTypes.NUMBER, ColumnTypes.DATE, ColumnTypes.SINGLE_SELECT, ColumnTypes.AUTO_NUMBER]
 AIRTABLE_API_URL = 'https://api.airtable.com/v0/'
 ColumnTypes.BARCODE = 'barcode'
 
@@ -221,21 +223,21 @@ class ColumnsParser(object):
                     value_map[column_name].append(value)
         return value_map
 
-    def get_select_data(self, select_list):
-        return {'options': [{
+    def get_select_options(self, select_list):
+        return [{
             'name': str(value),
             'id': self.random_num_id(),
             'color': self.random_color(),
             'textColor': TEXT_COLOR,
-        } for value in select_list]}
+        } for value in select_list]
 
     def get_column_data(self, link_map, table_name, column_name, column_type, values):
         column_data = None
         try:
             if column_type == ColumnTypes.BARCODE:
                 column_type = ColumnTypes.TEXT
-            # elif column_type == ColumnTypes.DATE and len(values[0]) == 24:
-            #     column_data = {'format': 'YYYY-MM-DD HH:mm'}
+            elif column_type == ColumnTypes.DATE:
+                column_data = {'format': 'YYYY-MM-DD'}
             elif column_type == ColumnTypes.LINK:
                 other_table_name = link_map[table_name][column_name]
                 column_data = {'other_table': other_table_name}
@@ -246,7 +248,7 @@ class ColumnsParser(object):
                         item = str(item)
                         if item not in select_list:
                             select_list.append(item)
-                column_data = self.get_select_data(select_list)
+                column_data = {'options': self.get_select_options(select_list)}
             elif column_type == ColumnTypes.COLLABORATOR:
                 if isinstance(values[0], dict):
                     column_type = ColumnTypes.SINGLE_SELECT
@@ -255,7 +257,7 @@ class ColumnsParser(object):
                         name = value['name']
                         if name not in select_list:
                             select_list.append(name)
-                    column_data = self.get_select_data(select_list)
+                    column_data = {'options': self.get_select_options(select_list)}
                 elif isinstance(values[0], list):
                     column_type = ColumnTypes.MULTIPLE_SELECT
                     select_list = []
@@ -264,9 +266,9 @@ class ColumnsParser(object):
                             name = item['name']
                             if name not in select_list:
                                 select_list.append(name)
-                    column_data = self.get_select_data(select_list)
+                    column_data = {'options': self.get_select_options(select_list)}
         except Exception as e:
-            print('[Warning] get column data error:', e)
+            print('[Warning] get', column_type.value, 'column data error:', e)
         return column_type, column_data
 
     def get_column_type(self, values):
@@ -378,18 +380,10 @@ class ColumnsParser(object):
                         select_value_map[column_name].append(item)
         return select_value_map
 
-    def get_select_options(self, select_list):
-        return [{
-            'name': str(value),
-            'id': self.random_num_id(),
-            'color': self.random_color(),
-            'textColor': TEXT_COLOR,
-        } for value in select_list]
-
     def gen_select_columns(self, select_value_map):
         select_columns = []
-        for column_name, values in select_value_map.items():
-            options = self.get_select_options(values)
+        for column_name, select_list in select_value_map.items():
+            options = self.get_select_options(select_list)
             column = {
                 'name': column_name,
                 'options': options,
@@ -441,7 +435,7 @@ class AirtableAPI(object):
 
 class AirtableConvertor(object):
 
-    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, links=[]):
+    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[]):
         """
         airtable_api_key: str
         airtable_base_id: str
@@ -452,10 +446,12 @@ class AirtableConvertor(object):
         self.airtable_api = AirtableAPI(airtable_api_key, airtable_base_id)
         self.base = base
         self.table_names = table_names
+        self.first_columns = first_columns
         self.links = links
         self.columns_parser = ColumnsParser()
         self.rows_convertor = RowsConvertor()
         self.links_convertor = LinksConvertor()
+        self.get_first_column_map()
         self.get_link_map()
 
     def convert_metadata(self):
@@ -480,6 +476,8 @@ class AirtableConvertor(object):
             table = self.table_map.get(table_name)
             if not table:
                 airtable_columns = self.airtable_column_map[table_name]
+                first_column_name = self.first_column_map.get(table_name) or \
+                    airtable_columns[0]['name']
                 columns = []
                 for column in airtable_columns:
                     if column['type'] == ColumnTypes.LINK:
@@ -489,9 +487,16 @@ class AirtableConvertor(object):
                         'column_type': column['type'].value,
                         'column_data': column['data'],
                     }
-                    columns.append(item)
+                    if column['name'] == first_column_name:
+                        if column['type'] not in FIRST_COLUMN_TYPES:
+                            item['column_type'] = ColumnTypes.TEXT.value
+                            item['column_data'] = None
+                        columns.insert(0, item)
+                    else:
+                        columns.append(item)
                 self.add_table(table_name, columns)
-                print('[Info] Added table [ %s ] with %s columns' % (table_name, len(columns)))
+                print(
+                    '[Info] Added table [ %s ] with %s columns' % (table_name, len(columns)))
         print('[Info] Success\n')
         time.sleep(1)
 
@@ -570,6 +575,14 @@ class AirtableConvertor(object):
         print('[Info] Success\n')
         time.sleep(1)
 
+    def get_first_column_map(self):
+        self.first_column_map = {}
+        for column in self.first_columns:
+            table_name = column[0]
+            column_name = column[1]
+            self.first_column_map[table_name] = column_name
+        return self.first_column_map
+
     def get_link_map(self):
         self.link_map = {}
         for link in self.links:
@@ -600,6 +613,7 @@ class AirtableConvertor(object):
             columns = self.columns_parser.parse(
                 self.link_map, table_name, airtable_rows)
             self.airtable_column_map[table_name] = columns
+        return self.airtable_column_map
 
     def get_table_map(self):
         self.table_map = {}
@@ -616,7 +630,7 @@ class AirtableConvertor(object):
         time.sleep(0.1)
         return self.table_map
 
-    def add_table(self, table_name, columns=[]):
+    def add_table(self, table_name, columns):
         table = self.base.add_table(table_name, columns=columns)
         time.sleep(0.1)
         return table
