@@ -82,4 +82,4 @@ print(dateutils.isoweeknum('2012-1-2')) # 1, monday
 print(dateutils.weeknum('2012-1-2')) # 2, monday
 
 # 19. dateutils.isomonth
-print(dateutils.isomonth('2012-10-21 10:20:3'))
+print(dateutils.isomonth('2012-1-2'))
