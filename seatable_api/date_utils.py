@@ -202,5 +202,13 @@ class DateUtils(object):
         """
         return self._str2datetime(time_str).isocalendar()[1]
 
+    def isomonth(self, time_str):
+        year = self.year(time_str)
+        month = self.month(time_str)
+
+        date_str = self.date(year, month, 1)
+        return date_str[0:-3]
+
+
 
 dateutils = DateUtils()
