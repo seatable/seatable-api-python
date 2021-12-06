@@ -492,7 +492,7 @@ class FormularOperator(Operator):
         super(FormularOperator, self).__init__(column, filter_item)
 
     def get_related_operator(self):
-        result_type = self.column.get('result_type')
+        result_type = self.column.get('data', {}).get('result_type')
         if result_type == FormulaResultType.NUMBER:
             return NumberOperator(self.column, self.filter_item)
         if result_type == FormulaResultType.DATE:
@@ -540,48 +540,6 @@ def _filter2sqlslice(operator):
 
     }.get(operator.filter_predicate, '')
 
-class SqlConvertor(object):
-
-    def __init__(self, operator):
-        self.operator = operator
-
-    def to_sql_slice(self):
-        support_fitler_predicates = self.operator.SUPPORT_FILTER_PREDICATE
-        if not self.operator.filter_predicate in support_fitler_predicates:
-            raise ValueError(
-                "%(column_type)s type column does not support '%(value)s, available predicates are %(available_predicates)s" % ({
-                    'column_type': self.operator.column_type,
-                    'value': self.operator.filter_predicate,
-                    'available_predicates': support_fitler_predicates,
-                })
-            )
-        return {
-            FilterPredicateTypes.IS: self.operator.op_is(),
-            FilterPredicateTypes.IS_NOT: self.operator.op_is_not(),
-            FilterPredicateTypes.CONTAINS: self.operator.op_contains(),
-            FilterPredicateTypes.NOT_CONTAIN: self.operator.op_does_not_contain(),
-            FilterPredicateTypes.NOT_EMPTY: self.operator.op_is_not_empty(),
-            FilterPredicateTypes.IS_EXACTLY: self.operator.op_is_exactly(),
-            FilterPredicateTypes.EMPTY: self.operator.op_is_empty(),
-            FilterPredicateTypes.EQUAL: self.operator.op_equal(),
-            FilterPredicateTypes.NOT_EQUAL: self.operator.op_not_equal(),
-            FilterPredicateTypes.GREATER: self.operator.op_greater(),
-            FilterPredicateTypes.GREATER_OR_EQUAL: self.operator.op_greater_or_equal(),
-            FilterPredicateTypes.LESS: self.operator.op_less(),
-            FilterPredicateTypes.LESS_OR_EQUAL: self.operator.op_less_or_equal(),
-            FilterPredicateTypes.IS_ANY_OF: self.operator.op_is_any_of(),
-            FilterPredicateTypes.IS_NONE_OF: self.operator.op_is_none_of(),
-            FilterPredicateTypes.IS_ON_OR_AFTER: self.operator.op_is_on_or_after(),
-            FilterPredicateTypes.IS_ON_OR_BEFORE: self.operator.op_is_on_or_before(),
-            FilterPredicateTypes.HAS_ALL_OF: self.operator.op_has_all_of(),
-            FilterPredicateTypes.HAS_ANY_OF: self.operator.op_has_any_of(),
-            FilterPredicateTypes.HAS_NONE_OF: self.operator.op_has_none_of(),
-            FilterPredicateTypes.IS_BEFORE: self.operator.op_is_before(),
-            FilterPredicateTypes.IS_AFTER: self.operator.op_is_after(),
-
-        }.get(self.operator.filter_predicate, '')
-
-
 def _get_operator_by_type(column_type):
 
     return {
@@ -610,8 +568,8 @@ def _get_operator_by_type(column_type):
         ColumnTypes.CREATOR.value: CreatorOperator,
         ColumnTypes.LAST_MODIFIER.value: CreatorOperator,
 
-        ColumnTypes.FORMULA: FormularOperator,
-        ColumnTypes.LINK_FORMULA: FormularOperator
+        ColumnTypes.FORMULA.value: FormularOperator,
+        ColumnTypes.LINK_FORMULA.value: FormularOperator
 
     }.get(column_type, None)
 
@@ -705,13 +663,11 @@ class BaseSQLGenerator(object):
 
                 column_type = column.get('type')
                 operator = _get_operator_by_type(column_type)(column, filter_item)
-                if column_type in [ColumnTypes.LINK_FORMULA, ColumnTypes.FORMULA]:
+                if column_type in [ColumnTypes.LINK_FORMULA.value, ColumnTypes.FORMULA.value]:
                     operator = operator.get_related_operator()
                 if not operator:
                     raise ValueError('%s type column does not surpport transfering filter to sql' % column_type)
                 sql_condition = _filter2sqlslice(operator)
-                # sql_condition = sql_convertor.to_sql_slice()
-                # sql_condition = get_sql_condition_by_filter(column, filter_item)
                 filter_string_list.append(sql_condition)
             if filter_string_list:
                 filter_content = "(%s)" % (
@@ -743,14 +699,12 @@ class BaseSQLGenerator(object):
                 column = column_name and self._get_column_by_name(column_name)
                 if not column:
                     continue
-
             column_type = column.get('type')
             operator = _get_operator_by_type(column_type)(column, filter_item)
-            if column_type in [ColumnTypes.LINK_FORMULA, ColumnTypes.FORMULA]:
+            if column_type in [ColumnTypes.LINK_FORMULA.value, ColumnTypes.FORMULA.value]:
                 operator = operator.get_related_operator()
             if not operator:
                 raise ValueError('%s type column does not surpport transfering filter to sql' % column_type)
-            # sql_convertor = SqlConvertor(operator)
             sql_condition = _filter2sqlslice(operator)
             filter_string_list.append(sql_condition)
         if filter_string_list:
