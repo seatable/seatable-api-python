@@ -106,6 +106,8 @@ def convert_db_rows(metadata, results):
     :param results: list
     :return: list
     """
+    if not results:
+        return []
     converted_results = []
     column_map = {column['key']: column for column in metadata}
     select_map = {}
