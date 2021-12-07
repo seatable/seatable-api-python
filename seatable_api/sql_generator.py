@@ -753,6 +753,7 @@ class BaseSQLGenerator(object):
             sql = "%s %s" % (sql, sort_clause)
         if limit_clause:
             sql = "%s %s" % (sql, limit_clause)
+        print("[SQL]: %s" % sql)
         return sql
 
 
