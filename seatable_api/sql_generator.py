@@ -499,6 +499,8 @@ class FormularOperator(Operator):
             return DateOperator(self.column, self.filter_item)
         if result_type == FormulaResultType.BOOL:
             return CheckBoxOperator(self.column, self.filter_item)
+        if result_type == FormulaResultType.ARRAY:
+            return MultipleSelectOperator(self.column, self.filter_item)
 
         return TextOperator(self.column, self.filter_item)
 
@@ -507,9 +509,10 @@ def _filter2sqlslice(operator):
     support_fitler_predicates = operator.SUPPORT_FILTER_PREDICATE
     if not operator.filter_predicate in support_fitler_predicates:
         raise ValueError(
-            "%(column_type)s type column does not support '%(value)s, available predicates are %(available_predicates)s" % (
+            "%(column_type)s type column '%(column_name)s' does not support '%(value)s', available predicates are %(available_predicates)s" % (
             {
                 'column_type': operator.column_type,
+                'column_name': operator.column_name,
                 'value': operator.filter_predicate,
                 'available_predicates': support_fitler_predicates,
             })
@@ -659,7 +662,7 @@ class BaseSQLGenerator(object):
                 if not column:
                     column = column_name and self._get_column_by_name(column_name)
                     if not column:
-                        continue
+                        raise ValueError("column '%s' does not exist" % column_name)
 
                 column_type = column.get('type')
                 operator = _get_operator_by_type(column_type)(column, filter_item)
@@ -698,7 +701,7 @@ class BaseSQLGenerator(object):
             if not column:
                 column = column_name and self._get_column_by_name(column_name)
                 if not column:
-                    continue
+                    raise ValueError("column '%s' does not exist" % column_name)
             column_type = column.get('type')
             operator = _get_operator_by_type(column_type)(column, filter_item)
             if column_type in [ColumnTypes.LINK_FORMULA.value, ColumnTypes.FORMULA.value]:
@@ -741,6 +744,9 @@ class BaseSQLGenerator(object):
         return sql
 
 
-def filter2sql(authed_base, table_name, filter_conditions, start=0, limit=500):
-    sql_generator = BaseSQLGenerator(authed_base, table_name, filter_conditions=filter_conditions)
-    return sql_generator.to_sql(start=start, limit=limit)
+def filter2sql(authed_base, table_name, filter_conditions, start=0, limit=500, by_group=False):
+    if by_group:
+        sql_generator = BaseSQLGenerator(authed_base, table_name, filter_condition_groups=filter_conditions)
+    else:
+        sql_generator = BaseSQLGenerator(authed_base, table_name, filter_conditions=filter_conditions)
+    return sql_generator.to_sql(start=start, limit=limit, by_group=by_group)
