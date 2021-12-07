@@ -311,15 +311,26 @@ class DateOperator(Operator):
             return one_month_from_now, None
 
         if filter_term_modifier == FilterTermModifier.NUMBER_OF_DAYS_AGO:
-            days_ago = today - timedelta(days=int(filter_term))
+            try:
+                filter_term = int(filter_term)
+            except:
+                raise ValueError("filter_term is invalid, please assign an integer value of days to filter_term")
+            days_ago = today - timedelta(days=filter_term)
             return days_ago, None
 
         if filter_term_modifier == FilterTermModifier.NUMBER_OF_DAYS_FROM_NOW:
-            days_after = today + timedelta(days=int(filter_term))
+            try:
+                filter_term = int(filter_term)
+            except:
+                raise ValueError("filter_term is invalid, please assign an integer value of days to filter_term")
+            days_after = today + timedelta(days=filter_term)
             return days_after, None
 
         if filter_term_modifier == FilterTermModifier.EXACT_DATE:
-            return datetime.strptime(filter_term, "%Y-%m-%d").date(), None
+            try:
+                return datetime.strptime(filter_term, "%Y-%m-%d").date(), None
+            except:
+                raise ValueError("filter_term is invalid, please assign an date value to filter_term, such as YYYY-MM-DD")
 
         if filter_term_modifier == FilterTermModifier.THE_PAST_WEEK:
             week_day = today.isoweekday()  # 1-7
@@ -329,7 +340,6 @@ class DateOperator(Operator):
 
         if filter_term_modifier == FilterTermModifier.THIS_WEEK:
             week_day = today.isoweekday()
-            print(week_day)
             start_date = today - timedelta(days=week_day - 1)
             end_date = today + timedelta(days=8 - week_day)
             return start_date, end_date
@@ -384,14 +394,22 @@ class DateOperator(Operator):
             return start_date, end_date
 
         if filter_term_modifier == FilterTermModifier.THE_NEXT_NUMBERS_OF_DAYS:
-            end_date = today + timedelta(days=int(filter_term))
+            try:
+                filter_term = int(filter_term)
+            except:
+                raise ValueError("filter_term is invalid, please assign an integer value of days to filter_term")
+            end_date = today + timedelta(days=filter_term)
             return today, end_date
 
         if filter_term_modifier == FilterTermModifier.THE_PAST_NUMBERS_OF_DAYS:
-            start_date = today - timedelta(days=int(filter_term))
+            try:
+                filter_term = int(filter_term)
+            except:
+                raise ValueError("filter_term is invalid, please assign an integer value of days to filter_term")
+            start_date = today - timedelta(days=filter_term)
             return start_date, today
 
-        return None, None
+        raise ValueError('fitler_term_modifier %s is invalid' % filter_term_modifier)
 
     def op_is(self):
         date, _ = self._other_date()
