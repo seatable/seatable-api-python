@@ -128,6 +128,12 @@ class Operator(object):
     def op_is_after(self):
         pass
 
+    def op_is_within(self):
+        pass
+
+    def op_default(self):
+        return ''
+
     def get_related_operator(self):
         pass
 
@@ -268,7 +274,8 @@ class DateOperator(Operator):
         return days[month - 1]
 
     def _format_date(self, dt):
-        return dt.strftime("%Y-%m-%d")
+        if dt:
+            return dt.strftime("%Y-%m-%d")
 
     def _other_date(self):
         filter_term_modifier = self.filter_term_modifier
@@ -277,59 +284,60 @@ class DateOperator(Operator):
         year = today.year
 
         if filter_term_modifier == FilterTermModifier.TODAY:
-            return today
+            return today, None
 
         if filter_term_modifier == FilterTermModifier.TOMORROW:
             tomorrow = today + timedelta(days=1)
-            return tomorrow
+            return tomorrow, None
 
         if filter_term_modifier == FilterTermModifier.YESTERDAY:
             yesterday = today - timedelta(days=1)
-            return yesterday
+            return yesterday, None
 
         if filter_term_modifier == FilterTermModifier.ONE_WEEK_AGO:
             one_week_ago = today - timedelta(days=7)
-            return one_week_ago
+            return one_week_ago, None
 
         if filter_term_modifier == FilterTermModifier.ONE_WEEK_FROM_NOW:
             one_week_from_now = today + timedelta(days=7)
-            return one_week_from_now
+            return one_week_from_now, None
 
         if filter_term_modifier == FilterTermModifier.ONE_MONTH_AGO:
             one_month_ago = today - relativedelta(months=1)
-            return one_month_ago
+            return one_month_ago, None
 
         if filter_term_modifier == FilterTermModifier.ONE_MONTH_FROM_NOW:
             one_month_from_now = today + relativedelta(months=1)
-            return one_month_from_now
+            return one_month_from_now, None
 
         if filter_term_modifier == FilterTermModifier.NUMBER_OF_DAYS_AGO:
             days_ago = today - timedelta(days=int(filter_term))
-            return days_ago
+            return days_ago, None
 
         if filter_term_modifier == FilterTermModifier.NUMBER_OF_DAYS_FROM_NOW:
             days_after = today + timedelta(days=int(filter_term))
-            return days_after
+            return days_after, None
 
         if filter_term_modifier == FilterTermModifier.EXACT_DATE:
-            return datetime.strptime(filter_term, "%Y-%m-%d").date()
+            return datetime.strptime(filter_term, "%Y-%m-%d").date(), None
 
         if filter_term_modifier == FilterTermModifier.THE_PAST_WEEK:
-            week_day = today.isoweekday() + 1  # 1-7
+            week_day = today.isoweekday()  # 1-7
             start_date = today - timedelta(days=(week_day + 6))
-            end_date = today - timedelta(days=week_day)
+            end_date = today - timedelta(days=week_day - 1)
             return start_date, end_date
 
         if filter_term_modifier == FilterTermModifier.THIS_WEEK:
-            week_day = today.isoweekday() + 1
+            week_day = today.isoweekday()
+            print(week_day)
             start_date = today - timedelta(days=week_day - 1)
-            end_date = today + timedelta(days=7 - week_day)
+            end_date = today + timedelta(days=8 - week_day)
             return start_date, end_date
 
         if filter_term_modifier == FilterTermModifier.THE_NEXT_WEEK:
-            week_day = today.isoweekday() + 1
-            start_date = today + timedelta(days=7 - week_day)
-            end_date = today + timedelta(days=14 - week_day)
+            week_day = today.isoweekday()
+            start_date = today + timedelta(days=8 - week_day)
+            end_date = today + timedelta(days=15 - week_day)
             return start_date, end_date
 
         if filter_term_modifier == FilterTermModifier.THE_PAST_MONTH:
@@ -383,8 +391,10 @@ class DateOperator(Operator):
             start_date = today - timedelta(days=int(filter_term))
             return start_date, today
 
+        return None, None
+
     def op_is(self):
-        date = self._other_date()
+        date, _ = self._other_date()
         next_date = self._format_date(date + timedelta(days=1))
         target_date = self._format_date(date)
         return "%(column_name)s >= '%(target_date)s' and %(column_name)s < '%(next_date)s'" % ({
@@ -402,35 +412,35 @@ class DateOperator(Operator):
         })
 
     def op_is_before(self):
-        target_date = self._other_date()
+        target_date, _ = self._other_date()
         return "%(column_name)s < '%(target_date)s' and %(column_name)s is not null" % ({
             "column_name": self.column_name,
             "target_date": self._format_date(target_date)
         })
 
     def op_is_after(self):
-        target_date = self._other_date()
+        target_date, _ = self._other_date()
         return "%(column_name)s > '%(target_date)s'" % ({
             "column_name": self.column_name,
             "target_date": self._format_date(target_date)
         })
 
     def op_is_on_or_before(self):
-        target_date = self._other_date()
+        target_date, _ = self._other_date()
         return "%(column_name)s <= '%(target_date)s' and %(column_name)s is not null" % ({
             "column_name": self.column_name,
             "target_date": self._format_date(target_date)
         })
 
     def op_is_on_or_after(self):
-        target_date = self._other_date()
+        target_date, _ = self._other_date()
         return "%(column_name)s >= '%(target_date)s' and %(column_name)s is not null" % ({
             "column_name": self.column_name,
             "target_date": self._format_date(target_date)
         })
 
     def op_is_not(self):
-        target_date = self._other_date()
+        target_date, _ = self._other_date()
         start_date = target_date - timedelta(days=1)
         end_date = target_date + timedelta(days=1)
         return "(%(column_name)s >= '%(end_date)s' or %(column_name)s <= '%(start_date)s') and %(column_name)s is not null" % (
@@ -517,31 +527,33 @@ def _filter2sqlslice(operator):
                 'available_predicates': support_fitler_predicates,
             })
         )
-    return {
-        FilterPredicateTypes.IS: operator.op_is(),
-        FilterPredicateTypes.IS_NOT: operator.op_is_not(),
-        FilterPredicateTypes.CONTAINS: operator.op_contains(),
-        FilterPredicateTypes.NOT_CONTAIN: operator.op_does_not_contain(),
-        FilterPredicateTypes.NOT_EMPTY: operator.op_is_not_empty(),
-        FilterPredicateTypes.IS_EXACTLY: operator.op_is_exactly(),
-        FilterPredicateTypes.EMPTY: operator.op_is_empty(),
-        FilterPredicateTypes.EQUAL: operator.op_equal(),
-        FilterPredicateTypes.NOT_EQUAL: operator.op_not_equal(),
-        FilterPredicateTypes.GREATER: operator.op_greater(),
-        FilterPredicateTypes.GREATER_OR_EQUAL: operator.op_greater_or_equal(),
-        FilterPredicateTypes.LESS: operator.op_less(),
-        FilterPredicateTypes.LESS_OR_EQUAL: operator.op_less_or_equal(),
-        FilterPredicateTypes.IS_ANY_OF: operator.op_is_any_of(),
-        FilterPredicateTypes.IS_NONE_OF: operator.op_is_none_of(),
-        FilterPredicateTypes.IS_ON_OR_AFTER: operator.op_is_on_or_after(),
-        FilterPredicateTypes.IS_ON_OR_BEFORE: operator.op_is_on_or_before(),
-        FilterPredicateTypes.HAS_ALL_OF: operator.op_has_all_of(),
-        FilterPredicateTypes.HAS_ANY_OF: operator.op_has_any_of(),
-        FilterPredicateTypes.HAS_NONE_OF: operator.op_has_none_of(),
-        FilterPredicateTypes.IS_BEFORE: operator.op_is_before(),
-        FilterPredicateTypes.IS_AFTER: operator.op_is_after(),
-
-    }.get(operator.filter_predicate, '')
+    fun_dict = {
+        FilterPredicateTypes.IS: operator.op_is,
+        FilterPredicateTypes.IS_NOT: operator.op_is_not,
+        FilterPredicateTypes.CONTAINS: operator.op_contains,
+        FilterPredicateTypes.NOT_CONTAIN: operator.op_does_not_contain,
+        FilterPredicateTypes.NOT_EMPTY: operator.op_is_not_empty,
+        FilterPredicateTypes.IS_EXACTLY: operator.op_is_exactly,
+        FilterPredicateTypes.EMPTY: operator.op_is_empty,
+        FilterPredicateTypes.EQUAL: operator.op_equal,
+        FilterPredicateTypes.NOT_EQUAL: operator.op_not_equal,
+        FilterPredicateTypes.GREATER: operator.op_greater,
+        FilterPredicateTypes.GREATER_OR_EQUAL: operator.op_greater_or_equal,
+        FilterPredicateTypes.LESS: operator.op_less,
+        FilterPredicateTypes.LESS_OR_EQUAL: operator.op_less_or_equal,
+        FilterPredicateTypes.IS_ANY_OF: operator.op_is_any_of,
+        FilterPredicateTypes.IS_NONE_OF: operator.op_is_none_of,
+        FilterPredicateTypes.IS_ON_OR_AFTER: operator.op_is_on_or_after,
+        FilterPredicateTypes.IS_ON_OR_BEFORE: operator.op_is_on_or_before,
+        FilterPredicateTypes.HAS_ALL_OF: operator.op_has_all_of,
+        FilterPredicateTypes.HAS_ANY_OF: operator.op_has_any_of,
+        FilterPredicateTypes.HAS_NONE_OF: operator.op_has_none_of,
+        FilterPredicateTypes.IS_BEFORE: operator.op_is_before,
+        FilterPredicateTypes.IS_AFTER: operator.op_is_after,
+        FilterPredicateTypes.IS_WITHIN: operator.op_is_within,
+    }
+    operator_func = fun_dict.get(operator.filter_predicate, operator.op_default)
+    return operator_func()
 
 def _get_operator_by_type(column_type):
 
