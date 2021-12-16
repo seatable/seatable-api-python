@@ -143,6 +143,8 @@ def convert_db_rows(metadata, results):
                                 value = date_value.strftime('%Y-%m-%d')
                             else:
                                 value = date_value.strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            value = None
                     except Exception as e:
                         print('[Warning] format date:', e)
                     item[column_name] = value
