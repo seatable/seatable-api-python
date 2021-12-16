@@ -136,12 +136,15 @@ def convert_db_rows(metadata, results):
                     item[column_name] = [s_map.get(s, s) for s in value]
                 elif column_type == 'date':
                     try:
-                        date_value = datetime.fromisoformat(value)
-                        date_format = column['data']['format']
-                        if date_format == 'YYYY-MM-DD':
-                            value = date_value.strftime('%Y-%m-%d')
+                        if value:
+                            date_value = datetime.fromisoformat(value)
+                            date_format = column['data']['format']
+                            if date_format == 'YYYY-MM-DD':
+                                value = date_value.strftime('%Y-%m-%d')
+                            else:
+                                value = date_value.strftime('%Y-%m-%d %H:%M:%S')
                         else:
-                            value = date_value.strftime('%Y-%m-%d %H:%M:%S')
+                            value = None
                     except Exception as e:
                         print('[Warning] format date:', e)
                     item[column_name] = value
