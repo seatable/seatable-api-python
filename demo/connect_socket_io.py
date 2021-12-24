@@ -1,4 +1,4 @@
-from seatable_api import SeaTableAPI
+from seatable_api import Base
 from seatable_api.constants import UPDATE_DTABLE, NEW_NOTIFICATION
 from seatable_api.utils import convert_row
 
@@ -21,17 +21,17 @@ def on_new_notification(data, index, *args):
 
 def connect_socket_io():
 
-    seatable_api = SeaTableAPI(api_token, server_url)
-    seatable_api.auth(with_socket_io=True)
+    base = Base(api_token, server_url)
+    base.auth(with_socket_io=True)
 
     global metadata
-    metadata = seatable_api.get_metadata()
+    metadata = base.get_metadata()
 
     # overwrite events
-    seatable_api.socketIO.on(UPDATE_DTABLE, on_update_seatable)
-    seatable_api.socketIO.on(NEW_NOTIFICATION, on_new_notification)
+    base.socketIO.on(UPDATE_DTABLE, on_update_seatable)
+    base.socketIO.on(NEW_NOTIFICATION, on_new_notification)
 
-    seatable_api.socketIO.wait()  # forever or limit (seconds=10)
+    base.socketIO.wait()
 
 
 if __name__ == '__main__':
