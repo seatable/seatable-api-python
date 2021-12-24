@@ -4,7 +4,7 @@ import json
 import requests
 from datetime import datetime
 
-from seatable_api import SeaTableAPI
+from seatable_api import Base
 
 
 server_url = 'http://127.0.0.1:8000'
@@ -13,8 +13,8 @@ api_token = 'd67d4e0eeee24b55ff7b60595faed7e2df36e1d1'
 
 def upload_file():
 
-    seatable = SeaTableAPI(api_token, server_url)
-    seatable.auth()
+    base = Base(api_token, server_url)
+    base.auth()
 
     table_name = 'Table1'
     file_name = 'demo.zip'
@@ -24,11 +24,11 @@ def upload_file():
 
     relative_path = 'files/' + datetime.now().strftime('%Y-%m')
 
-    rows = seatable.list_rows(table_name)
+    rows = base.list_rows(table_name)
     row = rows[0]
     row_id = row['_id']
 
-    upload_url_data = seatable.get_file_upload_link()
+    upload_url_data = base.get_file_upload_link()
     upload_url = upload_url_data.get('upload_link') + '?ret-json=1'
     parent_dir = upload_url_data.get('parent_path')
 
@@ -58,7 +58,7 @@ def upload_file():
     row_data = {
         file_column_name: files_data,
     }
-    seatable.update_row(table_name, row_id, row_data)
+    base.update_row(table_name, row_id, row_data)
 
 
 if __name__ == '__main__':
