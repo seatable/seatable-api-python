@@ -1,5 +1,6 @@
 import datetime
 import calendar
+import re
 from dateutil.relativedelta import relativedelta
 
 
@@ -7,7 +8,8 @@ DATETIME_FORMAT = {
     "ymd": "%Y-%m-%d",
     "ymd_h": "%Y-%m-%d %H",
     "ymd_hm": "%Y-%m-%d %H:%M",
-    "ymd_hms": "%Y-%m-%d %H:%M:%S"
+    "ymd_hms": "%Y-%m-%d %H:%M:%S",
+    "ymd_hmsf": "%Y-%m-%d %H:%M:%S.%f",
 }
 
 
@@ -27,7 +29,12 @@ class DateUtils(object):
             _, hms = spli
             spli_hms = hms.split(":")
             if len(spli_hms) == 3:
-                format_type = 'ymd_hms'
+                second_str = spli_hms[-1]
+                spli_second_str = second_str.split('.')
+                if len(spli_second_str) == 2:
+                    format_type = 'ymd_hmsf'
+                else:
+                    format_type = 'ymd_hms'
             if len(spli_hms) == 2:
                 format_type = 'ymd_hm'
             if len(spli_hms) == 1:
@@ -35,12 +42,13 @@ class DateUtils(object):
         return format_type
 
     def _str2datetime(self, date_str):
-        date_str = date_str.replace("T", " ")
+        date_str = date_str.split("+")[0].replace("T", " ")
         format_type = self._get_format_type(date_str)
         if not format_type:
             raise ValueError('invalid time format')
         format_type_str = DATETIME_FORMAT.get(format_type)
-        return datetime.datetime.strptime(date_str, format_type_str)
+        datetime_obj = datetime.datetime.strptime(date_str, format_type_str)
+        return datetime_obj
 
     def _delta(self, count, unit):
         return {
@@ -59,6 +67,8 @@ class DateUtils(object):
         :return: iso format of a date
         '''
         dt = datetime.date(year, month, day)
+        if args:
+            dt = datetime.datetime(year, month, day, *args)
         return self._isoformat(dt)
 
     def dateadd(self, date_str, count, unit='days'):
