@@ -98,7 +98,7 @@ class DateUtils(object):
 
     def datediff(self, start, end, unit='S'):
         dt_start, _ = self._str2datetime(start)
-        dt_end,_ = self._str2datetime(end)
+        dt_end, _ = self._str2datetime(end)
 
         if unit == 'S':
             delta = (dt_end - dt_start).days * 3600 * 24
