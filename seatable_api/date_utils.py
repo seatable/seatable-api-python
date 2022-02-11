@@ -1,7 +1,7 @@
 import datetime
 import calendar
-import re
 from dateutil.relativedelta import relativedelta
+from dateutil.parser import parse
 
 
 DATETIME_FORMAT = {
@@ -15,10 +15,10 @@ DATETIME_FORMAT = {
 
 class DateUtils(object):
 
-    def _isoformat(self, d):
+    def _isoformat(self, d, format_str="%Y-%m-%d"):
         if not isinstance(d, (datetime.date, datetime.datetime)):
             raise ValueError('datetime type error')
-        return d.isoformat()
+        return d.strftime(format_str)
 
     def _get_format_type(self, date_str):
         spli = date_str.split(" ")
@@ -41,14 +41,32 @@ class DateUtils(object):
                 format_type = 'ymd_h'
         return format_type
 
-    def _str2datetime(self, date_str):
-        date_str = date_str.split("+")[0].replace("T", " ")
-        format_type = self._get_format_type(date_str)
+    def _handle_timestr_with_timezone(self, time_str):
+
+        # deal with the timzone info if has timezone
+
+        local_now = datetime.datetime.now()
+        utc_now = datetime.datetime.utcnow()
+        seconds2utc = (local_now - utc_now).total_seconds()
+
+        dt_obj = parse(time_str)
+        if dt_obj.tzinfo:
+            seconds_offset = dt_obj.utcoffset().total_seconds()
+            delta_seconds = seconds2utc - seconds_offset
+            dt_obj = dt_obj.replace(tzinfo=None)
+            dt_obj_to_local = dt_obj + datetime.timedelta(seconds=delta_seconds)
+            return dt_obj_to_local.strftime("%Y-%m-%d %H:%M:%S")
+        return time_str
+
+    def _str2datetime(self, datetime_str):
+        datetime_str = self._handle_timestr_with_timezone(datetime_str)
+        datetime_str = datetime_str.replace("T", " ")
+        format_type = self._get_format_type(datetime_str)
         if not format_type:
             raise ValueError('invalid time format')
         format_type_str = DATETIME_FORMAT.get(format_type)
-        datetime_obj = datetime.datetime.strptime(date_str, format_type_str)
-        return datetime_obj
+        datetime_obj = datetime.datetime.strptime(datetime_str, format_type_str)
+        return datetime_obj, format_type_str
 
     def _delta(self, count, unit):
         return {
@@ -72,15 +90,15 @@ class DateUtils(object):
         return self._isoformat(dt)
 
     def dateadd(self, date_str, count, unit='days'):
-        dt = self._str2datetime(date_str)
+        dt, format_str = self._str2datetime(date_str)
         delta = self._delta(count, unit)
         if not delta:
             raise ValueError('invalid delta')
-        return self._isoformat(dt + delta)
+        return self._isoformat(dt + delta, format_str)
 
     def datediff(self, start, end, unit='S'):
-        dt_start = self._str2datetime(start)
-        dt_end = self._str2datetime(end)
+        dt_start, _ = self._str2datetime(start)
+        dt_end,_ = self._str2datetime(end)
 
         if unit == 'S':
             delta = (dt_end - dt_start).days * 3600 * 24
@@ -122,7 +140,7 @@ class DateUtils(object):
         :param direction:
         :return:
         """
-        dt = self._str2datetime(time_str)
+        dt, _ = self._str2datetime(time_str)
         if direction == 1:
             month_dt = dt.replace(day=28) + datetime.timedelta(days=4) # some day in next month
         elif direction == -1:
@@ -136,7 +154,7 @@ class DateUtils(object):
         return self._isoformat(datetime.date(month_dt_year, month_dt_month, 1) + datetime.timedelta(days=days-1))
 
     def day(self, time_str):
-        return self._str2datetime(time_str).day
+        return self._str2datetime(time_str)[0].day
 
     def days(self, time_start, time_end):
         """
@@ -145,7 +163,7 @@ class DateUtils(object):
         return self.datediff(time_start, time_end, unit='D')
 
     def hour(self, time_str):
-        return self._str2datetime(time_str).hour
+        return self._str2datetime(time_str)[0].hour
 
     def hours(self, time_start, time_end):
         """
@@ -154,10 +172,10 @@ class DateUtils(object):
         return self.datediff(time_start, time_end, unit='H')
 
     def minute(self, time_str):
-        return self._str2datetime(time_str).minute
+        return self._str2datetime(time_str)[0].minute
 
     def month(self, time_str):
-        return self._str2datetime(time_str).month
+        return self._str2datetime(time_str)[0].month
 
     def months(self, time_start, time_end):
         """
@@ -166,16 +184,16 @@ class DateUtils(object):
         return self.datediff(time_start, time_end, unit='M')
 
     def second(self, time_str):
-        return self._str2datetime(time_str).second
+        return self._str2datetime(time_str)[0].second
 
     def now(self):
-        return self._isoformat(datetime.datetime.now())
+        return self._isoformat(datetime.datetime.now(), format_str="%Y-%m-%d %H:%M:%S")
 
     def today(self):
         return self._isoformat(datetime.datetime.now().date())
 
     def year(self, time_str):
-        return self._str2datetime(time_str).year
+        return self._str2datetime(time_str)[0].year
 
     def weekday(self, time_str):
         """
@@ -183,20 +201,20 @@ class DateUtils(object):
         :param time_str:
         :return:
         """
-        return datetime.datetime.weekday(self._str2datetime(time_str))
+        return datetime.datetime.weekday(self._str2datetime(time_str)[0])
 
     def isoweekday(self, time_str):
         """
         return the iso number of a day in a week, Mon=1, Tue=2, ..., Sun=7
         """
-        return datetime.datetime.isoweekday(self._str2datetime(time_str))
+        return datetime.datetime.isoweekday(self._str2datetime(time_str)[0])
 
     def weeknum(self, time_str):
         """
         return the week number in a year by defining the first week contains the first
         week of a year, xxxx-01-01
         """
-        dt = self._str2datetime(time_str)
+        dt, _ = self._str2datetime(time_str)
         dt_year = dt.year
         dt_jan = datetime.datetime(dt_year, 1, 1)
         days_to_second_week = 6 - self.weekday("%s-%s-%s" % (dt_year, 1, 1))
@@ -210,7 +228,7 @@ class DateUtils(object):
         """
         return the week number by the definition of ISO datetime scheme
         """
-        return self._str2datetime(time_str).isocalendar()[1]
+        return self._str2datetime(time_str)[0].isocalendar()[1]
 
     def isomonth(self, time_str):
         year = self.year(time_str)
