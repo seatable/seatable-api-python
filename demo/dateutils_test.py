@@ -12,13 +12,13 @@ time_start = "2019-6-3 20:1:12"
 print(dateutils.date(2020, 5, 16))  # 2020-05-16
 
 # 2. dateutils.dateadd
-print(dateutils.dateadd(time_str, -2, 'years')) # 2018-06-15T00:00:00
-print(dateutils.dateadd(time_str, 3, 'months')) # 2020-09-15T00:00:00
-print(dateutils.dateadd(time_str_s, 44, 'minutes')) # 2020-06-15T16:07:21
-print(dateutils.dateadd(time_str_s, 1000, 'days')) # 2023-03-12T15:23:21
-print(dateutils.dateadd(time_str_s, 3, 'weeks')) # 2020-07-06T15:23:21
-print(dateutils.dateadd(time_str_s, -3, 'hours')) # 2020-06-15T12:23:21
-print(dateutils.dateadd(time_str_s, 3, 'seconds')) # 2020-06-15T15:23:24
+print(dateutils.dateadd(time_str, -2, 'years')) # 2018-06-15
+print(dateutils.dateadd(time_str, 3, 'months')) # 2020-09-15
+print(dateutils.dateadd(time_str_s, 44, 'minutes')) # 2020-06-15 16:07:21
+print(dateutils.dateadd(time_str_s, 1000, 'days')) # 2023-03-12 15:23:21
+print(dateutils.dateadd(time_str_s, 3, 'weeks')) # 2020-07-06 15:23:21
+print(dateutils.dateadd(time_str_s, -3, 'hours')) # 2020-06-15 12:23:21
+print(dateutils.dateadd(time_str_s, 3, 'seconds')) # 2020-06-15 15:23:24
 
 # 3. dateutils.datediff
 print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 28857600
@@ -54,7 +54,7 @@ print(dateutils.months(time_start, time_end)) # 11
 print(dateutils.second(time_str_s)) # 21
 
 # 12. dateutils.now
-print(dateutils.now()) # 2021-06-28T15:22:39.995855
+print(dateutils.now()) # 2021-06-28 15:22:39
 
 # 13. dateutils.today
 print(dateutils.today()) # 2021-06-28
@@ -83,3 +83,18 @@ print(dateutils.weeknum('2012-1-2')) # 2, monday
 
 # 19. dateutils.isomonth
 print(dateutils.isomonth('2012-1-2'))
+
+# 20. others
+dt_now = dateutils.now()  # 2022-02-07 09:49:14
+dt_10_days = dateutils.dateadd(dt_now, 10) # 2022-02-17 09:49:14
+dt_month_10_days = dateutils.month(dt_10_days) # 2
+dt_10_days_before = dateutils.dateadd(dt_now, -10)
+date_df = dateutils.datediff(dt_10_days_before, dt_10_days, unit="D") # 20
+
+time_str = "2021-07-17T18:15:41.106-05:00"
+time_day = dateutils.day(time_str) # 17
+time_month = dateutils.month(time_str) # 7
+time_year = dateutils.year(time_str) # 2021
+time_hour = dateutils.hour(time_str) # 7
+time_date = dateutils.date(time_year, time_month, time_day) # 2021-07-17
+res = dateutils.dateadd(dateutils.dateadd(dateutils.now(), 10), 10) # 2022-03-03 11:13:02
