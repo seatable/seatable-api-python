@@ -448,6 +448,8 @@ class SeaTableAPI(object):
         :param row_id: str
         :param other_rows_ids: list
         """
+        if not isinstance(other_rows_ids, list):
+            raise ValueError("Param other_rows_ids expect type 'list'")
         url = self._row_link_server_url()
         json_data = {
             'link_id': link_id,
