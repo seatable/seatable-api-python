@@ -104,7 +104,7 @@ class DateUtils(object):
             delta = (dt_end - dt_start).total_seconds()
             return int(delta)
         elif unit == 'D':
-            delta = (dt_end - dt_start).days
+            delta = (dt_end.date() - dt_start.date()).days
         elif unit == 'H':
             delta_seconds = (dt_end - dt_start).total_seconds()
             return int(delta_seconds / 3600)
@@ -122,12 +122,18 @@ class DateUtils(object):
             delta = dt_end.day - dt_start.day
         elif unit == 'YM':
             delta = dt_end.month - dt_start.month
+            delta = delta < 0 and 12 + delta or delta
         elif unit == 'YD':
-            if dt_end.month < dt_start.month:
+            minus = False
+            if dt_end <= dt_start:
+                dt_end, dt_start = dt_start, dt_end
+                minus = True
+            if dt_end.month <= dt_start.month:
                 dt_start_new = dt_start.replace(year=dt_end.year - 1)
             else:
                 dt_start_new = dt_start.replace(year=dt_end.year)
-            delta = (dt_end - dt_start_new).days
+            delta = (dt_end.date() - dt_start_new.date()).days
+            delta = -delta if minus else delta
         else:
             delta = None
         return delta
@@ -159,7 +165,10 @@ class DateUtils(object):
         """
         return the interval of two given date by days
         """
-        return self.datediff(time_start, time_end, unit='D')
+        dt_start, _ = self._str2datetime(time_start)
+        dt_end, _ = self._str2datetime(time_end)
+        delta = (dt_end - dt_start).days
+        return delta
 
     def hour(self, time_str):
         return self._str2datetime(time_str)[0].hour
