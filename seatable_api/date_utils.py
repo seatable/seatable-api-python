@@ -124,11 +124,19 @@ class DateUtils(object):
             delta = dt_end.month - dt_start.month
             delta = delta < 0 and 12 + delta or delta
         elif unit == 'YD':
+            if dt_end.month == dt_start.month and dt_end.day == dt_start.day:
+                return 0
+
             minus = False
-            if dt_end <= dt_start:
+            if dt_end < dt_start:
                 dt_end, dt_start = dt_start, dt_end
                 minus = True
-            if dt_end.month <= dt_start.month:
+            if dt_end.month == dt_start.month:
+                if dt_end.day > dt_start.day:
+                    dt_start_new = dt_start.replace(year=dt_end.year)
+                else:
+                    dt_start_new = dt_start.replace(year=dt_end.year - 1)
+            elif dt_end.month < dt_start.month:
                 dt_start_new = dt_start.replace(year=dt_end.year - 1)
             else:
                 dt_start_new = dt_start.replace(year=dt_end.year)
