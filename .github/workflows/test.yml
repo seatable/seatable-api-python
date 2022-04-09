@@ -16,7 +16,7 @@ jobs:
       - name: pip install
         run: |
           pip install --upgrade pip
-          pip install requests
+          pip install requests, python-socketio<5, ply, python_dateutil
 
       - name: run dateutils test
         run: |
