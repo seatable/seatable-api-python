@@ -1,5 +1,12 @@
-from seatable_api import Base, dateutils
 import json
+import os
+import sys
+
+
+conf_dir = os.path.join(os.path.dirname(__file__), '../seatable_api')
+sys.path.append(conf_dir)
+from seatable_api import Base, dateutils
+
 API_TOKEN = "6e8eb3c52cf7d203632cb8225bb132a645250e73"
 DTABLE_WEB_SERVER_URL = "https://dev.seatable.cn"
 
