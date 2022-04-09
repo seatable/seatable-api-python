@@ -21,4 +21,4 @@ jobs:
       - name: run dateutils test
         run: |
           cd $GITHUB_WORKSPACE
-          python ./tests/dateutils_test.py
+          python3 ./tests/dateutils_test.py
