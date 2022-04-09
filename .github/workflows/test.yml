@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.6"
+          python-version: "3.9"
 
       - name: pip install
         run: |
@@ -19,7 +19,7 @@ jobs:
           pip install requests
           pip install ply
           pip install python_dateutil
-          pip install socketio==0.2.1
+          pip install python-socketio<5
 
       - name: run dateutils test
         run: |
