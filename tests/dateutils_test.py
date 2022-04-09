@@ -8,8 +8,6 @@ from seatable_api import Base, dateutils
 API_TOKEN = "6e8eb3c52cf7d203632cb8225bb132a645250e73"
 DTABLE_WEB_SERVER_URL = "https://dev.seatable.cn"
 
-
-
 DATE_DIFF_FUNC_TEST = [
     {
         'col_name': 'SecondsDiff',
@@ -193,10 +191,11 @@ if __name__ == '__main__':
         result_str = "\n".join([json.dumps(res) for res in result])
 
 
-    base.append_row('TestResult', {
-        "FailedNum": len(result),
-        "Details": result_str
-    })
+    # base.append_row('TestResult', {
+    #     "FailedNum": len(result),
+    #     "Details": result_str
+    # })
 
     failed_num = len(result)
-    assert failed_num == 0
+    if failed_num > 0:
+        raise ValueError("Date utils test failed: %s" % result_str)
