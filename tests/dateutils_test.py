@@ -187,7 +187,11 @@ if __name__ == '__main__':
     if result:
         result_str = "\n".join([json.dumps(res) for res in result])
 
-    base.append_row('TestResult', {
-        "FailedNum": len(result),
-        "Details": result_str
-    })
+    failed_num= len(result)
+    if failed_num > 0:
+        assert ("Dateutils test problems: %s " % result_str)
+
+    # base.append_row('TestResult', {
+    #     "FailedNum": len(result),
+    #     "Details": result_str
+    # })
