@@ -20,4 +20,4 @@ jobs:
 
       - name: run dateutils test
         run: |
-          python ../../tests/dateutils_test
+          python ../../tests/dateutils_test.py
