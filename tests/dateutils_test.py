@@ -94,10 +94,6 @@ DATE_STR_FUNC_TEST = [
         'func': (dateutils.day, None)
     },
     {
-        'col_name': 'Hour',
-        'func': (dateutils.hour, None)
-    },
-    {
         'col_name': 'Minute',
         'func': (dateutils.minute, None)
     },
