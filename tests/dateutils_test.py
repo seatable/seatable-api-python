@@ -1,4 +1,4 @@
-from .seatable_api import Base, dateutils
+from seatable_api import Base, dateutils
 import json
 API_TOKEN = "6e8eb3c52cf7d203632cb8225bb132a645250e73"
 DTABLE_WEB_SERVER_URL = "https://dev.seatable.cn"
