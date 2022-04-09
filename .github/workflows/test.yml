@@ -19,7 +19,7 @@ jobs:
           pip install requests
           pip install ply
           pip install python_dateutil
-          pip install python-socketio<5
+          pip install socketio
 
       - name: run dateutils test
         run: |
