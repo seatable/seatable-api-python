@@ -4,172 +4,193 @@ import sys
 
 # sys.path = []
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
-from seatable_api import Base, dateutils
-API_TOKEN = "6e8eb3c52cf7d203632cb8225bb132a645250e73"
-DTABLE_WEB_SERVER_URL = "https://dev.seatable.cn"
+from seatable_api import dateutils
+
+TIME_START = '2019-06-03 20:01'
+TIME_END = '2020-05-03 13:13'
+TIME_STR = '2022-04-06 09:52:49'
 
 DATE_DIFF_FUNC_TEST = [
     {
-        'col_name': 'SecondsDiff',
-        'func': (dateutils.datediff, 'S')
+        'func_name': 'SecondsDiff',
+        'func': (dateutils.datediff, 'S'),
+        'assert_value': 28919520,
     },
     {
-        'col_name': 'DayDiff',
-        'func': (dateutils.datediff, 'D')
+        'func_name': 'DayDiff',
+        'func': (dateutils.datediff, 'D'),
+        'assert_value': 335,
     },
     {
-        'col_name': 'MonthDiff',
-        'func': (dateutils.datediff, 'M')
+        'func_name': 'MonthDiff',
+        'func': (dateutils.datediff, 'M'),
+        'assert_value': 11
     },
     {
-        'col_name': 'YearDiff',
-        'func': (dateutils.datediff, 'Y')
+        'func_name': 'YearDiff',
+        'func': (dateutils.datediff, 'Y'),
+        'assert_value': 0
     },
     {
-        'col_name': 'YMDiff',
-        'func': (dateutils.datediff, 'YM')
+        'func_name': 'YMDiff',
+        'func': (dateutils.datediff, 'YM'),
+        'assert_value': 11
     },
     {
-        'col_name': 'MDDiff',
-        'func': (dateutils.datediff, 'MD')
+        'func_name': 'MDDiff',
+        'func': (dateutils.datediff, 'MD'),
+        'assert_value': 0
     },
     {
-        'col_name': 'YDDiff',
-        'func': (dateutils.datediff, 'YD')
+        'func_name': 'YDDiff',
+        'func': (dateutils.datediff, 'YD'),
+        'assert_value': 335
     },
     {
-        'col_name': 'Days',
-        'func': (dateutils.days, None)
+        'func_name': 'Days',
+        'func': (dateutils.days, None),
+        'assert_value': 334
     },
     {
-        'col_name': 'Hours',
-        'func': (dateutils.hours, None)
+        'func_name': 'Hours',
+        'func': (dateutils.hours, None),
+        'assert_value': 8033
     },
     {
-        'col_name': 'Months',
-        'func': (dateutils.months, None)
+        'func_name': 'Months',
+        'func': (dateutils.months, None),
+        'assert_value': 11
     },
 
 ]
 
 DATE_ADD_FUNC_TEST = [
     {
-        'col_name': 'DateAddYears',
-        'func': (dateutils.dateadd, 'years')
+        'func_name': 'DateAddYears',
+        'func': (dateutils.dateadd, 'years'),
+        'assert_value': '2021-06-03 20:01'
     },
     {
-        'col_name': 'DateAddMonths',
-        'func': (dateutils.dateadd, 'months')
+        'func_name': 'DateAddMonths',
+        'func': (dateutils.dateadd, 'months'),
+        'assert_value': '2019-08-03 20:01'
     },
     {
-        'col_name': 'DateAddWeeks',
-        'func': (dateutils.dateadd, 'weeks')
+        'func_name': 'DateAddWeeks',
+        'func': (dateutils.dateadd, 'weeks'),
+        'assert_value': '2019-06-17 20:01'
     },
     {
-        'col_name': 'DateAddDays',
-        'func': (dateutils.dateadd, 'days')
+        'func_name': 'DateAddDays',
+        'func': (dateutils.dateadd, 'days'),
+        'assert_value': '2019-06-05 20:01'
     },
     {
-        'col_name': 'DateAddHours',
-        'func': (dateutils.dateadd, 'hours')
+        'func_name': 'DateAddHours',
+        'func': (dateutils.dateadd, 'hours'),
+        'assert_value': '2019-06-03 22:01'
     },
     {
-        'col_name': 'DateAddMinutes',
-        'func': (dateutils.dateadd, 'minutes')
+        'func_name': 'DateAddMinutes',
+        'func': (dateutils.dateadd, 'minutes'),
+        'assert_value': '2019-06-03 20:03'
     },
 
 ]
 
 DATE_STR_FUNC_TEST = [
     {
-        'col_name': 'Emonth',
-        'func': (dateutils.emonth, None)
+        'func_name': 'Emonth',
+        'func': (dateutils.emonth, None),
+        'assert_value': '2022-05-31'
     },
     {
-        'col_name': 'Year',
-        'func': (dateutils.year, None)
+        'func_name': 'Year',
+        'func': (dateutils.year, None),
+        'assert_value': 2022
     },
     {
-        'col_name': 'Day',
-        'func': (dateutils.day, None)
+        'func_name': 'Day',
+        'func': (dateutils.day, None),
+        'assert_value': 6
     },
     {
-        'col_name': 'Minute',
-        'func': (dateutils.minute, None)
+        'func_name': 'Minute',
+        'func': (dateutils.minute, None),
+        'assert_value': 52
     },
     {
-        'col_name': 'Second',
-        'func': (dateutils.second, None)
+        'func_name': 'Second',
+        'func': (dateutils.second, None),
+        'assert_value': 49
     },
     {
-        'col_name': 'Month',
-        'func': (dateutils.month, None)
+        'func_name': 'Month',
+        'func': (dateutils.month, None),
+        'assert_value': 4
     },
 ]
 
 
-def date_diff_func_test(row, start, end):
+def date_diff_func_test(start, end):
     result_list = []
     for test_fun in DATE_DIFF_FUNC_TEST:
-        col_name = test_fun.get('col_name')
+        func_name = test_fun.get('func_name')
         func, param = test_fun.get('func')
-        js_value = row.get(col_name)
+        assert_value = test_fun.get('assert_value')
         if param:
             python_value = func(start, end, param)
         else:
             python_value = func(start, end)
-
-        if str(python_value) != str(js_value):
+        if str(python_value) != str(assert_value):
             result_list.append({
-                'column_name': col_name,
+                'column_name': func_name,
                 'python_value': python_value,
-                'js_value': js_value
+                'assert_value': assert_value
             })
 
     return result_list
 
 
-def date_add_func_test(row, time_str):
+def date_add_func_test(time_str):
     result_list = []
     for test_fun in DATE_ADD_FUNC_TEST:
-        col_name = test_fun.get('col_name')
+        func_name = test_fun.get('func_name')
         func, param = test_fun.get('func')
-        js_value = row.get(col_name)
+        assert_value = test_fun.get('assert_value')
         python_value = func(time_str, 2, param)
-        if str(python_value) != str(js_value):
+        if str(python_value) != str(assert_value):
             result_list.append({
-                'column_name': col_name,
+                'column_name': func_name,
                 'python_value': python_value,
-                'js_value': js_value
+                'assert_value': assert_value
             })
     return result_list
 
 
-def date_func_test(row, time_str):
+def date_func_test(time_str):
     result_list = []
     for test_fun in DATE_STR_FUNC_TEST:
-        col_name = test_fun.get('col_name')
+        func_name = test_fun.get('func_name')
         func, param = test_fun.get('func')
-        js_value = row.get(col_name)
+        assert_value = test_fun.get('assert_value')
         python_value = func(time_str)
-        if str(python_value) != str(js_value):
+        if str(python_value) != str(assert_value):
             result_list.append({
-                'column_name': col_name,
+                'column_name': func_name,
                 'python_value': python_value,
-                'js_value': js_value
+                'assert_value': assert_value
             })
     return result_list
 
 
-def dateutils_test(base):
-    rel, rel_1, rel_2 = [], [], []
-    for row in base.list_rows('Table1'):
-        time_start = row.get('DT1')
-        time_end = row.get('DT2')
-        ctime = row.get('CTime')
-        rel = date_diff_func_test(row, time_start, time_end)
-        rel_1 = date_add_func_test(row, time_start)
-        rel_2 = date_func_test(row, ctime)
+def dateutils_test():
+    time_start = TIME_START
+    time_end = TIME_END
+    ctime = TIME_STR
+    rel = date_diff_func_test(time_start, time_end)
+    rel_1 = date_add_func_test(time_start)
+    rel_2 = date_func_test(ctime)
 
     rel.extend(rel_1)
     rel.extend(rel_2)
@@ -177,20 +198,13 @@ def dateutils_test(base):
 
 
 if __name__ == '__main__':
-    base = Base(API_TOKEN, DTABLE_WEB_SERVER_URL)
-    base.auth()
 
-    result = dateutils_test(base)
+
+    result = dateutils_test()
     result_str = ''
 
     if result:
         result_str = "\n".join([json.dumps(res) for res in result])
-
-
-    # base.append_row('TestResult', {
-    #     "FailedNum": len(result),
-    #     "Details": result_str
-    # })
 
     failed_num = len(result)
     if failed_num > 0:
