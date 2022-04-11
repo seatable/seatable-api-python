@@ -21,12 +21,12 @@ print(dateutils.dateadd(time_str_s, -3, 'hours')) # 2020-06-15 12:23:21
 print(dateutils.dateadd(time_str_s, 3, 'seconds')) # 2020-06-15 15:23:24
 
 # 3. dateutils.datediff
-print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 28857600
+print(dateutils.datediff(start=time_start, end=time_end, unit='S')) # seconds 28919521
 print(dateutils.datediff(start=time_start, end=time_end, unit='Y')) # years 0
-print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 334
-print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 8009
+print(dateutils.datediff(start=time_start, end=time_end, unit='D')) # days 335
+print(dateutils.datediff(start=time_start, end=time_end, unit='H')) # hours 8033
 print(dateutils.datediff(start=time_start, end=time_end, unit='M')) # months 11
-print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relative-month -1
+print(dateutils.datediff(start=time_start, end=time_end, unit='YM')) # relative-month 11
 print(dateutils.datediff(start=time_start, end=time_end, unit='MD')) # relative-days 0
 
 # 4. dateutils.day
@@ -39,7 +39,7 @@ print(dateutils.days(time_start, time_end)) # 334
 print(dateutils.hour(time_start)) # 20
 
 # 7. dateutils.hours
-print(dateutils.hours(time_start, time_end)) # 8009
+print(dateutils.hours(time_start, time_end)) # 8033
 
 # 8. dateutils.minute
 print(dateutils.minute(time_start)) # 1
@@ -54,7 +54,7 @@ print(dateutils.months(time_start, time_end)) # 11
 print(dateutils.second(time_str_s)) # 21
 
 # 12. dateutils.now
-print(dateutils.now()) # 2021-06-28 15:22:39
+print(dateutils.now())
 
 # 13. dateutils.today
 print(dateutils.today()) # 2021-06-28

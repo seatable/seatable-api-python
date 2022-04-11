@@ -1,0 +1,27 @@
+name: SeaTable Python SDK
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+
+      - name: pip install
+        run: |
+          pip install --upgrade pip
+          pip install requests
+          pip install ply
+          pip install python_dateutil
+          pip install python-socketio
+
+      - name: run dateutils test
+        run: |
+          cd $GITHUB_WORKSPACE
+          python3 ./tests/dateutils_test.py
