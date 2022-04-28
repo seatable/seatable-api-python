@@ -99,6 +99,18 @@ def convert_row(metadata, ws_data):
     return result
 
 
+def is_single_multiple_structure(column):
+    column_type = column['type']
+    if column_type in ('single-select', 'multiple-select'):
+        options = column.get('data', {}).get('options', [])
+        return True, options
+    if column_type in ('link', 'link-formula'):
+        array_type = column.get('data', {}).get('array_type')
+        if array_type in ('single-select', 'multiple-select'):
+            options = column.get('data', {}).get('array_data', {}).get('options', [])
+            return True, options
+    return False, []
+
 def convert_db_rows(metadata, results):
     """ Convert dtable-db rows data to readable rows data
 
@@ -112,13 +124,12 @@ def convert_db_rows(metadata, results):
     column_map = {column['key']: column for column in metadata}
     select_map = {}
     for column in metadata:
-            column_type = column['type']
-            if column_type in ('single-select', 'multiple-select'):
+            is_sm_structure, column_options = is_single_multiple_structure(column)
+            if is_sm_structure:
                 column_data = column['data']
                 if not column_data:
                     continue
                 column_key = column['key']
-                column_options = column['data']['options']
                 select_map[column_key] = {
                     select['id']: select['name'] for select in column_options}
 
@@ -134,6 +145,16 @@ def convert_db_rows(metadata, results):
                     item[column_name] = s_map.get(value, value)
                 elif column_type == 'multiple-select' and value and s_map:
                     item[column_name] = [s_map.get(s, s) for s in value]
+                elif column_type == 'link' and value and s_map:
+                    new_data = []
+                    for s in value:
+                        old_display_value = s.get('display_value')
+                        s['display_value'] = s_map.get(old_display_value, old_display_value)
+                        new_data.append(s)
+                    item[column_name] = new_data
+                elif column_type == 'link-formula' and value and s_map:
+                    item[column_name] = [s_map.get(s, s) for s in value]
+
                 elif column_type == 'date':
                     try:
                         if value:
