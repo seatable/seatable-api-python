@@ -153,7 +153,10 @@ def convert_db_rows(metadata, results):
                         new_data.append(s)
                     item[column_name] = new_data
                 elif column_type == 'link-formula' and value and s_map:
-                    item[column_name] = [s_map.get(s, s) for s in value]
+                    if isinstance(value[0], list):
+                        item[column_name] = [[s_map.get(v, v) for v in s] for s in value]
+                    else:
+                        item[column_name] = [s_map.get(s, s) for s in value]
 
                 elif column_type == 'date':
                     try:
