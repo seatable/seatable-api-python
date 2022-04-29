@@ -149,7 +149,10 @@ def convert_db_rows(metadata, results):
                     new_data = []
                     for s in value:
                         old_display_value = s.get('display_value')
-                        s['display_value'] = s_map.get(old_display_value, old_display_value)
+                        if isinstance(old_display_value, list):
+                            s['display_value'] = old_display_value and [s_map.get(v, v) for v in old_display_value] or []
+                        else:
+                            s['display_value'] = s_map.get(old_display_value, old_display_value)
                         new_data.append(s)
                     item[column_name] = new_data
                 elif column_type == 'link-formula' and value and s_map:
