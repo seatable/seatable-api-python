@@ -146,7 +146,7 @@ class DateUtils(object):
             delta = None
         return delta
 
-    def emonth(self, time_str, direction=1):
+    def eomonth(self, time_str, months=1):
         """
         return the last day of the next/last month of given time
         :param time_str:
@@ -154,12 +154,8 @@ class DateUtils(object):
         :return:
         """
         dt, _ = self._str2datetime(time_str)
-        if direction == 1:
-            month_dt = dt.replace(day=28) + datetime.timedelta(days=4) # some day in next month
-        elif direction == -1:
-            month_dt = dt.replace(day=1) - datetime.timedelta(days=2) # some day in last month
-        else:
-            raise ValueError('direction invalid.')
+        dt_months = dt + relativedelta(months=months - 1)
+        month_dt = dt_months.replace(day=28) + datetime.timedelta(days=4)  # some day in relative next month
 
         month_dt_year = month_dt.year
         month_dt_month = month_dt.month

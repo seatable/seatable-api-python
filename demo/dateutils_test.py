@@ -73,9 +73,9 @@ print(dateutils.weeknum(time_start)) # 23
 print(dateutils.isoweeknum(time_end)) # 18
 
 
-# 18. dateutils.emonth
-print(dateutils.emonth('2020-3-25', direction=-1)) # 2021-02-29
-print(dateutils.emonth('2021-3-25', direction=1)) # 2021-04-30
+# 18. dateutils.eomonth
+print(dateutils.eomonth('2020-3-25', direction=-1)) # 2021-02-29
+print(dateutils.eomonth('2021-3-25', direction=1)) # 2021-04-30
 
 
 print(dateutils.isoweeknum('2012-1-2')) # 1, monday
