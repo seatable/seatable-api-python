@@ -101,7 +101,7 @@ DATE_ADD_FUNC_TEST = [
 DATE_STR_FUNC_TEST = [
     {
         'func_name': 'Emonth',
-        'func': (dateutils.emonth, None),
+        'func': (dateutils.eomonth, None),
         'assert_value': '2022-05-31'
     },
     {
