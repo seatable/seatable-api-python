@@ -43,5 +43,10 @@ class Context:
     def current_table(self):
         return context_data.get('table')
 
+    @property
+    @need_data
+    def request_user(self):
+        return context_data.get('request_user')
+
 
 context = Context()
