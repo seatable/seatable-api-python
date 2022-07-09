@@ -45,8 +45,8 @@ class Context:
 
     @property
     @need_data
-    def request_user(self):
-        return context_data.get('request_user')
+    def current_user_id(self):
+        return context_data.get('current_user_id')
 
 
 context = Context()
