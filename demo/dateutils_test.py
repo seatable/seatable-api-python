@@ -98,3 +98,5 @@ time_year = dateutils.year(time_str) # 2021
 time_hour = dateutils.hour(time_str) # 7
 time_date = dateutils.date(time_year, time_month, time_day) # 2021-07-17
 res = dateutils.dateadd(dateutils.dateadd(dateutils.now(), 10), 10) # 2022-03-03 11:13:02
+
+print(dateutils.to_quarter(time_str)[0])
