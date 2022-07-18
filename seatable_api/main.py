@@ -33,7 +33,7 @@ def parse_response(response):
             err_data = json.loads(response.text)
         except:
             err_data = {}
-        if err_data.get("error_msg") == "You don't have permission to access." and \
+        if err_data.get("error_msg") == "JWT token expired." and \
             response.status_code == 403:
             raise AuthExpiredError
 
