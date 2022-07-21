@@ -67,7 +67,7 @@ class DateQuarter:
     _year = 0
     _quarter = 0
 
-    def __init__(self, year: int, quarter: int):
+    def __init__(self, year, quarter):
         year = year + (quarter-1) // 4
         quarter = (quarter-1) % 4 + 1
 
@@ -187,25 +187,29 @@ class DateQuarter:
         else:
             raise ArithmeticError()
 
+    @property
     def year(self):
         return self._year
 
+    @property
     def quarter(self):
         return self._quarter
 
     def days(self):
-        start = self.start_date()
-        end = self.end_date()
+        start = self.start_date
+        end = self.end_date
         curr = start
         while curr <= end:
             yield curr
             curr = curr + datetime.timedelta(days=1)
 
+    @property
     def start_date(self):
         return datetime.date(year=self._year, month=(self._quarter-1)*3+1, day=1)
 
+    @property
     def end_date(self):
-        return (self+1).start_date() - datetime.timedelta(days=1)
+        return (self+1).start_date - datetime.timedelta(days=1)
 
     @classmethod
     def between(cls, start, end, include_last=False):
@@ -408,11 +412,18 @@ class DateUtils(object):
         date_str = self.date(year, month, 1)
         return date_str[0:-3]
 
+    def quarter_from_yq(self, year, quarter):
+        return DateQuarter(year, quarter)
+
+    def quarter_from_ym(self, year, month):
+        dt = self.date(year, month, 1)
+        return self.to_quarter(dt)
+
     def to_quarter(self, time_str):
         dt_obj, _ = _str2datetime(time_str)
         return DateQuarter.from_date(dt_obj)
 
-    def between_quarter(self, time_start, time_end, include_last=False):
+    def quarters_within(self, time_start, time_end, include_last=False):
         q_start = self.to_quarter(time_start)
         q_end = self.to_quarter(time_end)
         return DateQuarter.between(q_start, q_end, include_last=include_last)

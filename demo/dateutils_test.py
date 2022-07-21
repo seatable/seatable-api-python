@@ -100,14 +100,26 @@ time_hour = dateutils.hour(time_str) # 7
 time_date = dateutils.date(time_year, time_month, time_day) # 2021-07-17
 res = dateutils.dateadd(dateutils.dateadd(dateutils.now(), 10), 10) # 2022-03-03 11:13:02
 
-print(dateutils.to_quarter(time_str))
+print(dateutils.to_quarter(time_str)) # <DateQuarter-2022,3Q>
 time_str2 = "2022-07-28"
 
 q1 = dateutils.to_quarter(time_str)
 q2 = dateutils.to_quarter(time_str2)
-print(q1 < time_str2)
-print(q1 + 1)
+print(q1 < time_str2) # False
+print(q1 + 1) # <DateQuarter-2022,4Q>
 
-# print(list(DateQuarter.between(q1, q2)))
-print(list(dateutils.between_quarter(time_str, time_str2, include_last=True)))
 
+time_str = "2022-07-17"
+q1 = dateutils.to_quarter(time_str)
+print(q1.year) # 2022
+print(q1.quarter) # 3
+
+print(q1.start_date) # 2022-07-01
+print(q1.end_date) # 2022-09-30
+
+print("2022-8-28" in q1) # True
+
+print(list(dateutils.quarters_within("2021-03-28", "2022-07-17", include_last=True))) # [<DateQuarter-2021,1Q>, ...,<DateQuarter-2022,3Q>]
+
+print(dateutils.quarter_from_yq(2022, 4)) # <DateQuarter-2022,4Q>
+print(dateutils.quarter_from_ym(2022, 4)) # <DateQuarter-2022,2Q>
