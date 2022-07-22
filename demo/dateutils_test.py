@@ -1,8 +1,6 @@
 from seatable_api import dateutils
 
 # test the functions of date utils
-from seatable_api.date_utils import DateQuarter
-
 time_str = "2020-6-15"
 time_str_s = "2020-6-15 15:23:21"
 
