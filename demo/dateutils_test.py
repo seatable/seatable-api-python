@@ -95,10 +95,8 @@ date_df = dateutils.datediff(dt_10_days_before, dt_10_days, unit="D") # 20
 time_str = "2022-07-17T18:15:41.106-05:00"
 time_day = dateutils.day(time_str) # 17
 time_month = dateutils.month(time_str) # 7
-time_year = dateutils.year(time_str) # 2021
-time_hour = dateutils.hour(time_str) # 7
-time_date = dateutils.date(time_year, time_month, time_day) # 2021-07-17
-res = dateutils.dateadd(dateutils.dateadd(dateutils.now(), 10), 10) # 2022-03-03 11:13:02
+time_year = dateutils.year(time_str) # 2022
+res = dateutils.dateadd(dateutils.dateadd(dateutils.now(), 10), 10)
 
 print(dateutils.to_quarter(time_str)) # <DateQuarter-2022,3Q>
 time_str2 = "2022-07-28"
