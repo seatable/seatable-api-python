@@ -7,6 +7,7 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
+from seatable_api.exception import AuthExpiredError
 from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
@@ -28,6 +29,14 @@ def parse_server_url(server_url):
 
 def parse_response(response):
     if response.status_code >= 400:
+        try:
+            err_data = json.loads(response.text)
+        except:
+            err_data = {}
+        if err_data.get("error_msg") == "Token expired." and \
+            response.status_code == 403:
+            raise AuthExpiredError
+
         raise ConnectionError(response.status_code, response.text)
     else:
         try:
