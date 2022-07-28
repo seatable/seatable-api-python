@@ -67,6 +67,7 @@ class SeaTableAPI(object):
         self.dtable_name = None
         self.timeout = 30
         self.socketIO = None
+        self.related_users = None
 
     def __str__(self):
         return '<SeaTable Base [ %s ]>' % self.dtable_name
@@ -161,6 +162,18 @@ class SeaTableAPI(object):
 
     def _dtable_db_query_url(self):
         return self.dtable_db_url + '/api/v1/query/' + self.dtable_uuid + '/'
+
+    def _get_related_users_url(self):
+        return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+
+    def _send_quick_notification_url(self):
+        return '%(dtable_server_url)s/api/v1/dtables/%(dtable_uuid)s/quick-notifications/' % {
+            'dtable_server_url': self.dtable_server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
 
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
@@ -813,6 +826,23 @@ class SeaTableAPI(object):
             return converted_results
         else:
             return results
+
+    def get_related_users(self):
+        if self.related_users:
+            return self.related_users
+        response = requests.get(self._get_related_users_url(), headers=self.headers)
+        self.related_users = parse_response(response)['user_list']
+        return self.related_users
+
+    def send_quick_notification(self, email, msg, msg_type='toaster'):
+        url = self._send_quick_notification_url()
+        requests.post(url, json={
+            'to_user': email,
+            'msg_type': msg_type,
+            'detail': {
+                'msg': str(msg)
+            }
+        }, headers=self.headers)
 
 
 class Account(object):
