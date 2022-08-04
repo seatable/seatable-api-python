@@ -67,7 +67,6 @@ class SeaTableAPI(object):
         self.dtable_name = None
         self.timeout = 30
         self.socketIO = None
-        self.related_users = None
 
     def __str__(self):
         return '<SeaTable Base [ %s ]>' % self.dtable_name
@@ -828,11 +827,8 @@ class SeaTableAPI(object):
             return results
 
     def get_related_users(self):
-        if self.related_users:
-            return self.related_users
         response = requests.get(self._get_related_users_url(), headers=self.headers)
-        self.related_users = parse_response(response)['user_list']
-        return self.related_users
+        return parse_response(response)['user_list']
 
     def send_quick_notification(self, email, msg, msg_type='toaster'):
         url = self._send_quick_notification_url()
