@@ -20,6 +20,8 @@ FIRST_COLUMN_TYPES = [
     ColumnTypes.TEXT, ColumnTypes.NUMBER, ColumnTypes.DATE, ColumnTypes.SINGLE_SELECT, ColumnTypes.AUTO_NUMBER]
 AIRTABLE_API_URL = 'https://api.airtable.com/v0/'
 ColumnTypes.BARCODE = 'barcode'
+FILE = 'file'
+IMAGE = 'image'
 
 
 class LinksConvertor(object):
@@ -51,7 +53,65 @@ class LinksConvertor(object):
         return links
 
 
+class FilesConvertor(object):
+
+    def __init__(self, airtable_api_key, base):
+        self.airtable_api_headers = {
+            'Authorization': 'Bearer ' + airtable_api_key}
+        self.base = base
+
+    def upload_file(self, item, file_type):
+        """file_type must in ['image', 'file']
+        """
+        try:
+            # download from airtable
+            name = item['filename']
+            url = item['url']
+            response = requests.get(
+                url=url, headers=self.airtable_api_headers, timeout=60)
+            content = response.content
+            # upload to seatable
+            file_info = self.base.upload_bytes_file(
+                name=name, content=content, file_type=file_type)
+            return file_info
+        except Exception as e:
+            print('[Warning] upload file error:', e)
+            return None
+
+    def batch_upload_files(self, value):
+        file_list = []
+        for item in value:
+            file_info = self.upload_file(item, file_type=FILE)
+            if file_info is not None:
+                pass
+            else:
+                # return source url when upload failed
+                file_info = {
+                    'name': item['filename'],
+                    'size': item['size'],
+                    'type': FILE,
+                    'url': item['url'],
+                }
+            file_list.append(file_info)
+        return file_list
+
+    def batch_upload_images(self, value):
+        image_list = []
+        for item in value:
+            file_info = self.upload_file(item, file_type=IMAGE)
+            if file_info is not None:
+                image_url = file_info['url']
+            else:
+                # return source url when upload failed
+                image_url = item['url']
+            image_list.append(image_url)
+        return image_list
+
+
 class RowsConvertor(object):
+
+    def __init__(self, files_convertor):
+        self.files_convertor = files_convertor
 
     def convert(self, columns, airtable_rows):
         rows = self.gen_rows(columns, airtable_rows)
@@ -66,15 +126,12 @@ class RowsConvertor(object):
         return value
 
     def parse_image(self, value):
-        return [item['url'] for item in value]
+        image_list = self.files_convertor.batch_upload_images(value)
+        return image_list
 
     def parse_file(self, value):
-        return [{
-                'name': item['filename'],
-                'size': item['size'],
-                'type': 'file',
-                'url': item['url'],
-                } for item in value]
+        file_list = self.files_convertor.batch_upload_files(value)
+        return file_list
 
     def parse_single_select(self, value):
         if isinstance(value, dict) and 'name' in value:
@@ -449,7 +506,8 @@ class AirtableConvertor(object):
         self.first_columns = first_columns
         self.links = links
         self.columns_parser = ColumnsParser()
-        self.rows_convertor = RowsConvertor()
+        self.files_convertor = FilesConvertor(airtable_api_key, base)
+        self.rows_convertor = RowsConvertor(self.files_convertor)
         self.links_convertor = LinksConvertor()
         self.get_first_column_map()
         self.get_link_map()
