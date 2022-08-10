@@ -83,16 +83,7 @@ class FilesConvertor(object):
         for item in value:
             file_info = self.upload_file(item, file_type=FILE)
             if file_info is not None:
-                pass
-            else:
-                # return source url when upload failed
-                file_info = {
-                    'name': item['filename'],
-                    'size': item['size'],
-                    'type': FILE,
-                    'url': item['url'],
-                }
-            file_list.append(file_info)
+                file_list.append(file_info)
         return file_list
 
     def batch_upload_images(self, value):
@@ -101,10 +92,7 @@ class FilesConvertor(object):
             file_info = self.upload_file(item, file_type=IMAGE)
             if file_info is not None:
                 image_url = file_info['url']
-            else:
-                # return source url when upload failed
-                image_url = item['url']
-            image_list.append(image_url)
+                image_list.append(image_url)
         return image_list
 
 
