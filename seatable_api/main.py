@@ -168,8 +168,8 @@ class SeaTableAPI(object):
             'dtable_uuid': self.dtable_uuid
         }
 
-    def _send_quick_notification_url(self):
-        return '%(dtable_server_url)s/api/v1/dtables/%(dtable_uuid)s/quick-notifications/' % {
+    def _send_toast_notification_url(self):
+        return '%(dtable_server_url)s/api/v1/dtables/%(dtable_uuid)s/ui-toasts/' % {
             'dtable_server_url': self.dtable_server_url,
             'dtable_uuid': self.dtable_uuid
         }
@@ -830,11 +830,11 @@ class SeaTableAPI(object):
         response = requests.get(self._get_related_users_url(), headers=self.headers)
         return parse_response(response)['user_list']
 
-    def send_quick_notification(self, email, msg, msg_type='toaster'):
-        url = self._send_quick_notification_url()
+    def send_toast_notification(self, email, msg, toast_type='success'):
+        url = self._send_toast_notification_url()
         requests.post(url, json={
             'to_user': email,
-            'msg_type': msg_type,
+            'toast_type': toast_type,
             'detail': {
                 'msg': str(msg)
             }
