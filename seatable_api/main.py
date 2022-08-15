@@ -162,6 +162,18 @@ class SeaTableAPI(object):
     def _dtable_db_query_url(self):
         return self.dtable_db_url + '/api/v1/query/' + self.dtable_uuid + '/'
 
+    def _get_related_users_url(self):
+        return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+
+    def _send_toast_notification_url(self):
+        return '%(dtable_server_url)s/api/v1/dtables/%(dtable_uuid)s/ui-toasts/' % {
+            'dtable_server_url': self.dtable_server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
         params = {
@@ -813,6 +825,20 @@ class SeaTableAPI(object):
             return converted_results
         else:
             return results
+
+    def get_related_users(self):
+        response = requests.get(self._get_related_users_url(), headers=self.headers)
+        return parse_response(response)['user_list']
+
+    def send_toast_notification(self, email, msg, toast_type='success'):
+        url = self._send_toast_notification_url()
+        requests.post(url, json={
+            'to_user': email,
+            'toast_type': toast_type,
+            'detail': {
+                'msg': str(msg)
+            }
+        }, headers=self.headers)
 
 
 class Account(object):
