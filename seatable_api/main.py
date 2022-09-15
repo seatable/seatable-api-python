@@ -162,7 +162,7 @@ class SeaTableAPI(object):
     def _dtable_db_query_url(self):
         return self.dtable_db_url + '/api/v1/query/' + self.dtable_uuid + '/'
 
-    def _dtable_db_link_records_url(self):
+    def _dtable_db_linked_records_url(self):
         return self.dtable_db_url + '/api/v1/linked-records/' + self.dtable_uuid + '/'
 
     def _get_related_users_url(self):
@@ -505,13 +505,13 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def get_link_records(self, table_id, link_column_key, rows):
+    def get_linked_records(self, table_id, link_column_key, rows):
         """
         :param table_id:  str
         :param link_column_key: str
         :param rows: list
         """
-        url = self._dtable_db_link_records_url()
+        url = self._dtable_db_linked_records_url()
         json_data = {
             'table_id': table_id,
             'link_column': link_column_key,
