@@ -48,5 +48,10 @@ class Context:
     def current_user_id(self):
         return context_data.get('current_user_id')
 
+    @property
+    @need_data
+    def context_data(self, key):
+        return context_data.get(key)
+
 
 context = Context()
