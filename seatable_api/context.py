@@ -50,7 +50,7 @@ class Context:
 
     @property
     @need_data
-    def get_data_value(self, key):
+    def get_setting_by_key(self, key):
         return context_data.get(key)
 
 
