@@ -48,5 +48,9 @@ class Context:
     def current_user_id(self):
         return context_data.get('current_user_id')
 
+    @need_data
+    def get_setting_by_key(self, key):
+        return context_data.get(key)
+
 
 context = Context()
