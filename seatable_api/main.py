@@ -238,6 +238,7 @@ class SeaTableAPI(object):
         url = self._row_server_url()
         params = {
             'table_name': table_name,
+            'table_id': table_name,
         }
         if view_name:
             params['view_name'] = view_name
@@ -261,6 +262,7 @@ class SeaTableAPI(object):
         url = self._row_server_url() + row_id + '/'
         params = {
             'table_name': table_name,
+            'table_id': table_name,
         }
         response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
@@ -274,6 +276,7 @@ class SeaTableAPI(object):
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'row': row_data,
         }
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -287,6 +290,7 @@ class SeaTableAPI(object):
         url = self._batch_row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'rows': rows_data,
         }
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -301,6 +305,7 @@ class SeaTableAPI(object):
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'row': row_data,
             'anchor_row_id': anchor_row_id,
         }
@@ -316,6 +321,7 @@ class SeaTableAPI(object):
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'row_id': row_id,
             'row': row_data,
         }
@@ -331,6 +337,7 @@ class SeaTableAPI(object):
         url = self._batch_update_row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'updates': rows_data,
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -344,6 +351,7 @@ class SeaTableAPI(object):
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'row_id': row_id,
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -357,6 +365,7 @@ class SeaTableAPI(object):
         url = self._batch_delete_row_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'row_ids': row_ids,
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
@@ -438,7 +447,9 @@ class SeaTableAPI(object):
         json_data = {
             'link_id': link_id,
             'table_name': table_name,
+            'table_id': table_name,
             'other_table_name': other_table_name,
+            'other_table_id': other_table_name,
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
@@ -457,7 +468,9 @@ class SeaTableAPI(object):
         json_data = {
             'link_id': link_id,
             'table_name': table_name,
+            'table_id': table_name,
             'other_table_name': other_table_name,
+            'other_table_id': other_table_name,
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
@@ -529,6 +542,7 @@ class SeaTableAPI(object):
         url = self._column_server_url()
         params = {
             'table_name': table_name,
+            'table_id': table_name,
         }
         if view_name:
             params['view_name'] = view_name
@@ -557,6 +571,7 @@ class SeaTableAPI(object):
         url = self._column_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'column_name': column_name,
             'column_type': column_type.value
         }
@@ -579,6 +594,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': RENAME_COLUMN,
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key,
             'new_column_name': new_column_name
         }
@@ -598,6 +614,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': RESIZE_COLUMN,
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key,
             'new_column_width': new_column_width
         }
@@ -616,6 +633,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': FREEZE_COLUMN,
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key,
             'frozen': frozen
         }
@@ -634,6 +652,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': MOVE_COLUMN,
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key,
             'target_column': target_column_key
         }
@@ -654,6 +673,7 @@ class SeaTableAPI(object):
         json_data = {
             'op_type': MODIFY_COLUMN_TYPE,
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key,
             'new_column_type': new_column_type.value
         }
@@ -670,6 +690,7 @@ class SeaTableAPI(object):
         url = self._column_options_server_url()
         json_data = {
             "table_name": table_name,
+            'table_id': table_name,
             "column": column,
             "options": options
         }
@@ -689,6 +710,7 @@ class SeaTableAPI(object):
         url = self._column_cascade_setting_server_url()
         json_data = {
             "table_name": table_name,
+            'table_id': table_name,
             "child_column": child_column,
             "parent_column": parent_column,
             "cascade_settings": cascade_settings
@@ -707,6 +729,7 @@ class SeaTableAPI(object):
         url = self._column_server_url()
         json_data = {
             'table_name': table_name,
+            'table_id': table_name,
             'column': column_key
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
