@@ -848,10 +848,10 @@ class SeaTableAPI(object):
         response = requests.get(self._get_related_users_url(), headers=self.headers)
         return parse_response(response)['user_list']
 
-    def send_toast_notification(self, email, msg, toast_type='success'):
+    def send_toast_notification(self, user_id, msg, toast_type='success'):
         url = self._send_toast_notification_url()
         requests.post(url, json={
-            'to_user': email,
+            'to_user': user_id,
             'toast_type': toast_type,
             'detail': {
                 'msg': str(msg)
