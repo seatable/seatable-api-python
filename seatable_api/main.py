@@ -477,7 +477,7 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def update_link(self, link_id, table_id, other_table_id, row_id, other_rows_ids):
+    def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
         :param table_id: str
@@ -490,15 +490,17 @@ class SeaTableAPI(object):
         url = self._row_link_server_url()
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_id': table_name,
+            'table_name': table_name,
+            'other_table_id': other_table_name,
+            'other_table_name': other_table_name,
             'row_id': row_id,
             'other_rows_ids': other_rows_ids,
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def batch_update_links(self, link_id, table_id, other_table_id, row_id_list, other_rows_ids_map):
+    def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
         :param table_id: str
@@ -509,8 +511,10 @@ class SeaTableAPI(object):
         url = self._batch_update_row_link_server_url()
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_id': table_name,
+            'table_name': table_name,
+            'other_table_id': other_table_name,
+            'other_table_name': other_table_name,
             'row_id_list': row_id_list,
             'other_rows_ids_map': other_rows_ids_map,
         }
