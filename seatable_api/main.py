@@ -47,7 +47,7 @@ def parse_response(response):
             pass
 
 def like_table_id(value):
-    return re.match(r'[-0-9a-f]{4}$', value)
+    return re.match(r'^[-0-9a-zA-Z]{4}$', value)
 
 
 class SeaTableAPI(object):
