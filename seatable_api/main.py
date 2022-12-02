@@ -1,5 +1,6 @@
 import io
 import json
+import re
 from datetime import datetime, timedelta
 from urllib import parse
 from uuid import UUID
@@ -44,6 +45,9 @@ def parse_response(response):
             return data
         except:
             pass
+
+def like_table_id(value):
+    return re.match(r'^[-0-9a-zA-Z]{4}$', value)
 
 
 class SeaTableAPI(object):
@@ -237,8 +241,11 @@ class SeaTableAPI(object):
         """
         url = self._row_server_url()
         params = {
-            'table_name': table_name,
+            'table_name': table_name
         }
+
+        if like_table_id(table_name):
+            params['table_id'] = table_name
         if view_name:
             params['view_name'] = view_name
         if order_by:
@@ -260,8 +267,11 @@ class SeaTableAPI(object):
         """
         url = self._row_server_url() + row_id + '/'
         params = {
-            'table_name': table_name,
+            'table_name': table_name
         }
+
+        if like_table_id(table_name):
+            params['table_id'] = table_name
         response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -276,6 +286,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row': row_data,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -289,6 +301,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'rows': rows_data,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -304,6 +318,8 @@ class SeaTableAPI(object):
             'row': row_data,
             'anchor_row_id': anchor_row_id,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -319,6 +335,8 @@ class SeaTableAPI(object):
             'row_id': row_id,
             'row': row_data,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -333,6 +351,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'updates': rows_data,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -346,6 +366,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_id': row_id,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -359,6 +381,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'row_ids': row_ids,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -442,6 +466,10 @@ class SeaTableAPI(object):
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -461,10 +489,14 @@ class SeaTableAPI(object):
             'table_row_id': row_id,
             'other_table_row_id': other_row_id,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def update_link(self, link_id, table_id, other_table_id, row_id, other_rows_ids):
+    def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
         :param table_id: str
@@ -477,15 +509,19 @@ class SeaTableAPI(object):
         url = self._row_link_server_url()
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
             'row_id': row_id,
             'other_rows_ids': other_rows_ids,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    def batch_update_links(self, link_id, table_id, other_table_id, row_id_list, other_rows_ids_map):
+    def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
         :param table_id: str
@@ -496,11 +532,16 @@ class SeaTableAPI(object):
         url = self._batch_update_row_link_server_url()
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
+
             'row_id_list': row_id_list,
             'other_rows_ids_map': other_rows_ids_map,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
 
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
@@ -530,6 +571,8 @@ class SeaTableAPI(object):
         params = {
             'table_name': table_name,
         }
+        if like_table_id(table_name):
+            params['table_id'] = table_name
         if view_name:
             params['view_name'] = view_name
         response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
@@ -560,6 +603,8 @@ class SeaTableAPI(object):
             'column_name': column_name,
             'column_type': column_type.value
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         if column_key:
             json_data['anchor_column'] = column_key
         if column_data:
@@ -582,6 +627,8 @@ class SeaTableAPI(object):
             'column': column_key,
             'new_column_name': new_column_name
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -601,6 +648,8 @@ class SeaTableAPI(object):
             'column': column_key,
             'new_column_width': new_column_width
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -619,6 +668,8 @@ class SeaTableAPI(object):
             'column': column_key,
             'frozen': frozen
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -637,6 +688,8 @@ class SeaTableAPI(object):
             'column': column_key,
             'target_column': target_column_key
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -657,6 +710,8 @@ class SeaTableAPI(object):
             'column': column_key,
             'new_column_type': new_column_type.value
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -673,6 +728,8 @@ class SeaTableAPI(object):
             "column": column,
             "options": options
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -693,7 +750,8 @@ class SeaTableAPI(object):
             "parent_column": parent_column,
             "cascade_settings": cascade_settings
         }
-
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -709,6 +767,8 @@ class SeaTableAPI(object):
             'table_name': table_name,
             'column': column_key
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         return data
