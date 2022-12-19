@@ -181,6 +181,12 @@ class SeaTableAPI(object):
             'dtable_uuid': self.dtable_uuid
         }
 
+    def _add_workflow_task_url(self, token):
+        return '%(server_url)s/api/v2.1/workflows/%(token)s/external-task-submit/' % {
+            'server_url': self.server_url,
+            'token': token
+        }
+
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
         params = {
@@ -918,6 +924,22 @@ class SeaTableAPI(object):
             }
         }, headers=self.headers)
 
+    def add_workflow_task(self, workflow_token, row_data, link_rows=None, new_linked_rows=None):
+        url = self._add_workflow_task_url(workflow_token)
+        headers = {'Authorization': 'Token ' + self.jwt_token}
+        response = requests.post(url, data={
+            'row_data': json.dumps(row_data),
+            'link_rows': json.dumps(link_rows or []),
+            'new_linked_rows': json.dumps(new_linked_rows or [])
+        }, headers=headers)
+        return parse_response(response)['task']
+
+    def add_workflow_task_with_existed_row(self, workflow_token, row_id):
+        url = self._add_workflow_task_url(workflow_token)
+        headers = {'Authorization': 'Token ' + self.jwt_token}
+        response = requests.post(url, data={'row_id': row_id}, headers=headers)
+        return parse_response(response)['task']
+
 
 class Account(object):
     def __init__(self, login_name, password, server_url):
@@ -951,12 +973,6 @@ class Account(object):
             'server_url': self.server_url,
             'workspace_id': workspace_id,
             'name': name
-        }
-
-    def _add_workflow_task_url(self, token):
-        return '%(server_url)s/api/v2.1/workflows/%(token)s/task-submit/' % {
-            'server_url': self.server_url,
-            'token': token
         }
 
     @property
@@ -1021,19 +1037,3 @@ class Account(object):
         base = SeaTableAPI(api_token, self.server_url)
         base.auth(with_socket_io=with_socket_io)
         return base
-
-    def add_workflow_task(self, workflow_token, row_data, link_rows=None, new_linked_rows=None):
-        url = self._add_workflow_task_url(workflow_token)
-        headers = {'Authorization': 'Token ' + self.token}
-        response = requests.post(url, data={
-            'row_data': json.dumps(row_data),
-            'link_rows': json.dumps(link_rows or []),
-            'new_linked_rows': json.dumps(new_linked_rows or [])
-        }, headers=headers)
-        return parse_response(response)['task']
-
-    def add_workflow_task_with_existed_row(self, workflow_token, row_id):
-        url = self._add_workflow_task_url(workflow_token)
-        headers = {'Authorization': 'Token ' + self.token}
-        response = requests.post(url, data={'row_id': row_id}, headers=headers)
-        return parse_response(response)['task']
