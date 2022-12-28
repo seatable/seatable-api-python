@@ -181,6 +181,12 @@ class SeaTableAPI(object):
             'dtable_uuid': self.dtable_uuid
         }
 
+    def _add_workflow_task_url(self, token):
+        return '%(server_url)s/api/v2.1/workflows/%(token)s/external-task-submit/' % {
+            'server_url': self.server_url,
+            'token': token
+        }
+
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
         params = {
@@ -917,6 +923,22 @@ class SeaTableAPI(object):
                 'msg': str(msg)
             }
         }, headers=self.headers)
+
+    def add_workflow_task(self, workflow_token, row_data, link_rows=None, new_linked_rows=None):
+        url = self._add_workflow_task_url(workflow_token)
+        headers = {'Authorization': 'Token ' + self.jwt_token}
+        response = requests.post(url, data={
+            'row_data': json.dumps(row_data),
+            'link_rows': json.dumps(link_rows or []),
+            'new_linked_rows': json.dumps(new_linked_rows or [])
+        }, headers=headers)
+        return parse_response(response)['task']
+
+    def add_workflow_task_with_existed_row(self, workflow_token, row_id):
+        url = self._add_workflow_task_url(workflow_token)
+        headers = {'Authorization': 'Token ' + self.jwt_token}
+        response = requests.post(url, data={'row_id': row_id}, headers=headers)
+        return parse_response(response)['task']
 
 
 class Account(object):
