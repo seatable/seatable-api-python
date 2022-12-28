@@ -924,20 +924,21 @@ class SeaTableAPI(object):
             }
         }, headers=self.headers)
 
-    def add_workflow_task(self, workflow_token, row_data, link_rows=None, new_linked_rows=None):
+    def add_workflow_task(self, workflow_token, row_data, initiator=None, link_rows=None, new_linked_rows=None):
         url = self._add_workflow_task_url(workflow_token)
         headers = {'Authorization': 'Token ' + self.jwt_token}
         response = requests.post(url, data={
             'row_data': json.dumps(row_data),
+            'initiator': initiator,
             'link_rows': json.dumps(link_rows or []),
             'new_linked_rows': json.dumps(new_linked_rows or [])
         }, headers=headers)
         return parse_response(response)['task']
 
-    def add_workflow_task_with_existed_row(self, workflow_token, row_id):
+    def add_workflow_task_with_existed_row(self, workflow_token, row_id, initiator=None):
         url = self._add_workflow_task_url(workflow_token)
         headers = {'Authorization': 'Token ' + self.jwt_token}
-        response = requests.post(url, data={'row_id': row_id}, headers=headers)
+        response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
 
 
