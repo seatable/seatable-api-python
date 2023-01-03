@@ -139,6 +139,14 @@ class RowsConvertor(object):
     def parse_text(self, value):
         if isinstance(value, dict) and 'text' in value:
             return value['text']  # barcode
+        if isinstance(value, dict) and 'name' in value:
+            return value['name']  # collaborator
+        if isinstance(value, list) and value and \
+                isinstance(value[0], dict) and 'name' in value[0]:
+            collaborators = []
+            for item in value:
+                collaborators.append(item['name'])
+            return ', '.join(collaborators)  # collaborators
         value = str(value)
         return value
 
@@ -295,23 +303,7 @@ class ColumnsParser(object):
                             select_list.append(item)
                 column_data = {'options': self.get_select_options(select_list)}
             elif column_type == ColumnTypes.COLLABORATOR:
-                if isinstance(values[0], dict):
-                    column_type = ColumnTypes.SINGLE_SELECT
-                    select_list = []
-                    for value in values:
-                        name = value['name']
-                        if name not in select_list:
-                            select_list.append(name)
-                    column_data = {'options': self.get_select_options(select_list)}
-                elif isinstance(values[0], list):
-                    column_type = ColumnTypes.MULTIPLE_SELECT
-                    select_list = []
-                    for value in values:
-                        for item in value:
-                            name = item['name']
-                            if name not in select_list:
-                                select_list.append(name)
-                    column_data = {'options': self.get_select_options(select_list)}
+                column_type = ColumnTypes.TEXT
         except Exception as e:
             print('[Warning] get', column_type.value, 'column data error:', e)
         return column_type, column_data
@@ -372,8 +364,12 @@ class ColumnsParser(object):
                         column_type = ColumnTypes.BARCODE
                 #
                 type_list.append(column_type)
-            column_type = max(
-                type_list, key=type_list.count) if type_list else ColumnTypes.TEXT
+            if not type_list:
+                column_type = ColumnTypes.TEXT
+            elif ColumnTypes.LONG_TEXT in type_list:  # longtext
+                column_type = ColumnTypes.LONG_TEXT
+            else:
+                column_type = max(type_list, key=type_list.count)
         except Exception as e:
             print('[Warning] get column type error:', e)
         return column_type
