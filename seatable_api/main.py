@@ -169,6 +169,9 @@ class SeaTableAPI(object):
     def _dtable_db_linked_records_url(self):
         return self.dtable_db_url + '/api/v1/linked-records/' + self.dtable_uuid + '/'
 
+    def _dtable_db_insert_rows_url(self):
+        return self.dtable_db_url + '/api/v1/insert-rows/' + self.dtable_uuid + '/'
+
     def _get_related_users_url(self):
         return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
             'server_url': self.server_url,
@@ -940,6 +943,17 @@ class SeaTableAPI(object):
         headers = {'Authorization': 'Token ' + self.jwt_token}
         response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
+
+
+    def big_data_insert_rows(self, table_name, rows_data):
+        url = self._dtable_db_insert_rows_url()
+        json_data = {
+            'table_name': table_name,
+            'rows': rows_data,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
 
 
 class Account(object):
