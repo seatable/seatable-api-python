@@ -214,6 +214,9 @@ class SeaTableAPI(ApiBase):
     def _dtable_db_linked_records_url(self):
         return self.dtable_db_url + '/api/v1/linked-records/' + self.dtable_uuid + '/'
 
+    def _dtable_db_insert_rows_url(self):
+        return self.dtable_db_url + '/api/v1/insert-rows/' + self.dtable_uuid + '/'
+
     def _get_related_users_url(self):
         return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
             'server_url': self.server_url,
@@ -976,6 +979,15 @@ class SeaTableAPI(ApiBase):
         url = self._add_workflow_task_url(workflow_token)
         response = self.http_request('post', url, data={'row_id': row_id, 'initiator': initiator})
         return parse_response(response)['task']
+
+    def big_data_insert_rows(self, table_name, rows_data):
+        url = self._dtable_db_insert_rows_url()
+        json_data = {
+            'table_name': table_name,
+            'rows': rows_data,
+        }
+        response = self.http_request('post', url, json=json_data)
+        return parse_response(response)
 
 
 class Account(ApiBase):
