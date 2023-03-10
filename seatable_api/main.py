@@ -8,7 +8,7 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
-from seatable_api.exception import AuthExpiredError
+from seatable_api.exception import AuthExpiredError, UserAuthMissingError
 from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
@@ -64,8 +64,10 @@ class SeaTableAPI(object):
         self.dtable_server_url = None
         self.dtable_db_url = None
         self.jwt_token = None
+        self.user_jwt_token = None
         self.jwt_exp = None
         self.headers = None
+        self.user_headers = None
         self.workspace_id = None
         self.dtable_uuid = None
         self.dtable_name = None
@@ -117,6 +119,24 @@ class SeaTableAPI(object):
             base = self._clone()
             self.socketIO = SocketIO(base)
             self.socketIO._connect()
+
+    def auth_as_user(self, login, password):
+        """Auth to SeaTable as user
+        """
+        self.jwt_exp = datetime.now() + timedelta(days=3)
+        url = self.server_url + '/api/v2.1/dtable/app-user-access-token/'
+        headers = parse_headers(self.token)
+        data = {'login': login, 'password': password}
+        response = requests.post(url, json=data, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+
+        self.dtable_server_url = parse_server_url(data.get('dtable_server'))
+        self.dtable_db_url = parse_server_url(data.get('dtable_db', ''))
+        self.user_jwt_token = data.get('access_token')
+        self.user_headers = parse_headers(self.user_jwt_token)
+        self.workspace_id = data.get('workspace_id')
+        self.dtable_uuid = data.get('dtable_uuid')
+        self.dtable_name = data.get('dtable_name')
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -232,7 +252,7 @@ class SeaTableAPI(object):
 
     def _get_comments_within_days_url(self):
         url = '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/comments-within-days/' % {
-            'server_url': self.dtable_server_url,
+            'server_url': self.server_url,
             'dtable_uuid': self.dtable_uuid
         }
         return url
@@ -996,10 +1016,12 @@ class SeaTableAPI(object):
         :param comment: str
         :return: success response dict {'success': True}
         """
+        if not self.user_headers:
+            raise UserAuthMissingError('Please call Base.auth_as_user before call this method')
         url = self._add_comment_url()
         params = {'table_id': table_id, 'row_id': row_id}
         json_data = {'comment': str(comment)}
-        response = requests.post(url, params=params, json=json_data, headers=self.headers, timeout=self.timeout)
+        response = requests.post(url, params=params, json=json_data, headers=self.user_headers, timeout=self.timeout)
         return parse_response(response)
 
     def get_comments_count(self, row_id):
@@ -1009,7 +1031,8 @@ class SeaTableAPI(object):
         """
         url = self._get_comments_count_url()
         params = {'row_id': row_id}
-        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        headers = self.headers or self.user_headers or None
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         return parse_response(response)['count']
 
     def get_comments(self, row_id, page=1, per_page=25):
@@ -1025,7 +1048,8 @@ class SeaTableAPI(object):
             'page': page,
             'per_page': per_page
         }
-        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        headers = self.headers or self.user_headers or None
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         return parse_response(response)
 
     def resolve_comment(self, comment_id, resolved=True):
@@ -1034,10 +1058,12 @@ class SeaTableAPI(object):
         :param resolved: bool
         :return: success response dict {'success': True}
         """
+        if not self.user_headers:
+            raise UserAuthMissingError('Please call Base.auth_as_user before call this method')
         url = self._update_or_delete_comment_url(comment_id)
-        options = {'resovled': 'true' if resolved else 'false'}
+        options = {'resolved': 'true' if resolved else 'false'}
         data = {'options': options}
-        response = requests.get(url, json=data, headers=self.headers, timeout=self.timeout)
+        response = requests.put(url, json=data, headers=self.user_headers, timeout=self.timeout)
         return parse_response(response)
 
     def delete_comment(self, comment_id):
@@ -1045,8 +1071,10 @@ class SeaTableAPI(object):
         :param comment_id: str
         :return: success response dict {'success': True}
         """
+        if not self.user_headers:
+            raise UserAuthMissingError('Please call Base.auth_as_user before call this method')
         url = self._update_or_delete_comment_url(comment_id)
-        response = requests.delete(url, headers=self.headers, timeout=self.timeout)
+        response = requests.delete(url, headers=self.user_headers, timeout=self.timeout)
         return parse_response(response)
 
     def get_comments_within_days(self, days=3):
@@ -1056,7 +1084,8 @@ class SeaTableAPI(object):
         """
         url = self._get_comments_within_days_url()
         params = {'days': days}
-        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        headers = self.headers or self.user_headers or None
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         return parse_response(response)['comment_list']
 
 
