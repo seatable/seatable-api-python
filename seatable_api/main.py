@@ -1040,7 +1040,7 @@ class SeaTableAPI(object):
         :param row_id: str
         :param page: str
         :param per_page: str
-        :return: a dict of {'comments': <list>, 'count': <int>}
+        :return: a dict of {'comment_list': <list>, 'count': <int>}
         """
         url = self._get_comments_url()
         params = {
