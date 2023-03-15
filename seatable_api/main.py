@@ -508,8 +508,8 @@ class SeaTableAPI(object):
     def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
-        :param table_id: str
-        :param other_table_id: str
+        :param table_name: str
+        :param other_table_name: str
         :param row_id: str
         :param other_rows_ids: list
         """
@@ -533,8 +533,8 @@ class SeaTableAPI(object):
     def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
-        :param table_id: str
-        :param other_table_id: str
+        :param table_name: str
+        :param other_table_name: str
         :param row_id_list: []
         :param other_rows_ids_map: dict
         """
