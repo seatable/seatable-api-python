@@ -172,6 +172,12 @@ class SeaTableAPI(object):
     def _dtable_db_insert_rows_url(self):
         return self.dtable_db_url + '/api/v1/insert-rows/' + self.dtable_uuid + '/'
 
+    def _smart_fill_from_text_url(self):
+        return self.dtable_db_url + '/api/v1/smart-fill-from-text/'
+
+    def _smart_fill_from_column_url(self):
+        return self.dtable_db_url + '/api/v1/smart-fill-from-column/'
+
     def _get_related_users_url(self):
         return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
             'server_url': self.server_url,
@@ -944,7 +950,6 @@ class SeaTableAPI(object):
         response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
 
-
     def big_data_insert_rows(self, table_name, rows_data):
         url = self._dtable_db_insert_rows_url()
         json_data = {
@@ -954,6 +959,45 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    # ----- ----- ----- AI ----- ----- ----- #
+
+    def smart_fill_from_text(self, table_name, long_text, columns):
+        """
+        :param table_name: str
+        :param long_text: str
+        :param columns: list
+        :return: list
+        """
+        url = self._smart_fill_from_text_url()
+        json_data = {
+            'dtable_uuid': self.dtable_uuid,
+            'table_name': table_name,
+            'long_text': long_text,
+            'columns': columns,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def smart_fill_from_column(self, table_name, long_text_column_name, columns, start=0, limit=10):
+        """
+        :param table_name: str
+        :param long_text_column_name: str
+        :param columns: list
+        :param start: int
+        :param limit: int
+        :return: list
+        """
+        url = self._smart_fill_from_column_url()
+        json_data = {
+            'dtable_uuid': self.dtable_uuid,
+            'table_name': table_name,
+            'long_text_column_name': long_text_column_name,
+            'columns': columns,
+            'start': start,
+            'limit': limit,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
 
 
 class Account(object):
