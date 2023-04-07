@@ -1,4 +1,5 @@
 import io
+import time
 import json
 import re
 from datetime import datetime, timedelta
@@ -172,12 +173,6 @@ class SeaTableAPI(object):
     def _dtable_db_insert_rows_url(self):
         return self.dtable_db_url + '/api/v1/insert-rows/' + self.dtable_uuid + '/'
 
-    def _smart_fill_from_text_url(self):
-        return self.dtable_db_url + '/api/v1/smart-fill-from-text/'
-
-    def _smart_fill_from_column_url(self):
-        return self.dtable_db_url + '/api/v1/smart-fill-from-column/'
-
     def _get_related_users_url(self):
         return '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/related-users/' % {
             'server_url': self.server_url,
@@ -195,6 +190,16 @@ class SeaTableAPI(object):
             'server_url': self.server_url,
             'token': token
         }
+
+    def _smart_fill_from_text_url(self):
+        return self.server_url + '/api/v2.1/smart-fill-from-text/'
+
+    def _smart_fill_from_column_url(self):
+        return self.server_url + '/api/v2.1/smart-fill-from-column/'
+
+    def _smart_fill_task_status_url(self, task_id):
+        return self.server_url + '/api/v2.1/smart-fill-task-status/?dtable_uuid=' + \
+            self.dtable_uuid + '&task_id=' + str(task_id)
 
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
@@ -966,7 +971,7 @@ class SeaTableAPI(object):
         :param table_name: str
         :param long_text: str
         :param columns: list
-        :return: list
+        :return: dict
         """
         url = self._smart_fill_from_text_url()
         json_data = {
@@ -985,7 +990,7 @@ class SeaTableAPI(object):
         :param columns: list
         :param start: int
         :param limit: int
-        :return: list
+        :return: dict
         """
         url = self._smart_fill_from_column_url()
         json_data = {
@@ -998,6 +1003,22 @@ class SeaTableAPI(object):
         }
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
+
+    def smart_fill_task_status(self, task_id):
+        """
+        :param task_id: str
+        :return: dict
+        """
+        url = self._smart_fill_task_status_url(task_id)
+        print('start check task status, please wait...')
+        for i in range(300):
+            time.sleep(1)
+            response = requests.get(url, headers=self.headers, timeout=self.timeout)
+            response = parse_response(response)
+            is_finished = response['is_finished']
+            if is_finished:
+                return response
+        return {'error': 'smart fill task status timeout'}
 
 
 class Account(object):
