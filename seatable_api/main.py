@@ -201,6 +201,35 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('account')
 
+    def _get_comments_url(self):
+        url = '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/comments/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+        return url
+
+    def _get_comments_count_url(self):
+        url = '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/comments-count/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+        return url
+    
+    def _update_comment_url(self, comment_id):
+        url = '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/comments/%(comment_id)s/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid,
+            'comment_id': comment_id
+        }
+        return url
+
+    def _get_comments_within_days_url(self):
+        url = '%(server_url)s/api/v2.1/dtables/%(dtable_uuid)s/comments-within-days/' % {
+            'server_url': self.server_url,
+            'dtable_uuid': self.dtable_uuid
+        }
+        return url
+
     def send_email(self, account_name, msg,  **kwargs):
         msg_sender = self._get_msg_sender_by_account(account_name)
         if not msg_sender or msg_sender.msg_type != 'email':
@@ -944,7 +973,6 @@ class SeaTableAPI(object):
         response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
 
-
     def big_data_insert_rows(self, table_name, rows_data):
         url = self._dtable_db_insert_rows_url()
         json_data = {
@@ -954,6 +982,53 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    def get_comments_count(self, row_id):
+        """
+        :param row_id: str
+        :return: int
+        """
+        url = self._get_comments_count_url()
+        params = {'row_id': row_id}
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)['count']
+
+    def get_comments(self, row_id, page=1, per_page=25):
+        """
+        :param row_id: str
+        :param page: str
+        :param per_page: str
+        :return: a dict of {'comment_list': <list>, 'count': <int>}
+        """
+        url = self._get_comments_url()
+        params = {
+            'row_id': row_id,
+            'page': page,
+            'per_page': per_page
+        }
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def resolve_comment(self, comment_id, resolved=True):
+        """
+        :param comment_id: str
+        :param resolved: bool
+        :return: success response dict {'success': True}
+        """
+        url = self._update_comment_url(comment_id)
+        options = {'resolved': 'true' if resolved else 'false'}
+        data = {'options': options}
+        response = requests.put(url, json=data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def get_comments_within_days(self, days=3):
+        """
+        :param days: int
+        :return: list of comments
+        """
+        url = self._get_comments_within_days_url()
+        params = {'days': days}
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)['comment_list']
 
 
 class Account(object):
