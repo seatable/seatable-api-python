@@ -8,7 +8,7 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
-from seatable_api.exception import AuthExpiredError, UserAuthMissingError
+from seatable_api.exception import AuthExpiredError
 from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
