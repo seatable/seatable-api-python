@@ -10,22 +10,25 @@ base = Base(api_token, server_url)
 
 base.auth()
 
-path = '/main/'
+path = '/'
 name = '02.png'
 
 # res = base.get_custom_file_download_link('/main/02.png')
 # print(res)
 
-# res_info = base.get_custom_file_info(path, name)
+# res_info = base.get_custom_file_info(path, '3.4.0.sql')
 # print(res_info)
 
 # res_upload_link = base.get_custom_file_upload_link(path)
 # print(res_upload_link)
 
-res = base.upload_local_file_to_custom_folder('/Users/ranjiwei/Desktop/dtable.json', path)
-print(res)
+# res = base.upload_local_file_to_custom_folder('/Users/ranjiwei/Desktop/dtable.json', path)
+# print(res)
 
-base.append_row('Table1', {'File': [res,]})
+# base.append_row('Table1', {'File': [res,]})
+
+res = base.list_custom_assets(path)
+print(res)
 
 
 

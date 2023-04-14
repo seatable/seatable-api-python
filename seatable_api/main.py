@@ -154,6 +154,9 @@ class SeaTableAPI(object):
     def _app_custom_asset_file_url(self):
         return self.server_url + '/api/v2.1/dtable/custom/app-asset-file/'
 
+    def _app_custom_asset_dir_url(self):
+        return self.server_url + '/api/v2.1/dtable/custom/app-asset-dir/'
+
     def _app_custom_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/custom/app-upload-link/'
 
@@ -1000,6 +1003,14 @@ class SeaTableAPI(object):
             'name': d.get('obj_name'),
             'url': 'custom-asset://%s.%s' % (asset_uuid, file_name_ext)
         }
+
+    def list_custom_assets(self, path):
+        url = self._app_custom_asset_dir_url()
+        params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
 
 
     def get_custom_file_upload_link(self, path):
