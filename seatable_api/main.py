@@ -980,7 +980,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('download_link')
 
-    def read_custom_file(self, path):
+    def get_custom_file_content(self, path):
         download_link = self.get_custom_file_download_link(parse.unquote(path))
         response = requests.get(download_link, timeout=self.timeout)
         return response.content
