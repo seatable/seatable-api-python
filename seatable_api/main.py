@@ -147,6 +147,18 @@ class SeaTableAPI(object):
 
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
+    
+    def _app_custom_download_link_url(self):
+        return self.server_url + '/api/v2.1/dtable/custom/app-download-link/'
+
+    def _app_custom_asset_file_url(self):
+        return self.server_url + '/api/v2.1/dtable/custom/app-asset-file/'
+
+    def _app_custom_asset_dir_url(self):
+        return self.server_url + '/api/v2.1/dtable/custom/app-asset-dir/'
+
+    def _app_custom_upload_link_url(self):
+        return self.server_url + '/api/v2.1/dtable/custom/app-upload-link/'
 
     def _app_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-upload-link/'
@@ -953,6 +965,87 @@ class SeaTableAPI(object):
         }
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
+
+
+    ####   custom assets ######
+    def get_custom_file_download_link(self, path):
+        """
+        :param path: str
+        :return: str
+        """
+        url = self._app_custom_download_link_url()
+        params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data.get('download_link')
+
+    def get_custom_file_upload_link(self, path):
+        url = self._app_custom_upload_link_url()
+        params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
+
+
+    def download_custom_file(self, path, save_path):
+        download_link = self.get_custom_file_download_link(parse.unquote(path))
+        response = requests.get(download_link, timeout=self.timeout)
+        if response.status_code != 200:
+            raise Exception('download file error')
+        with open(save_path, 'wb') as f:
+            f.write(response.content)
+
+    def upload_local_file_to_custom_folder(self, local_path, custom_folder_path = None, name=None, ):
+        if not name:
+            name = local_path.strip('/').split('/')[-1]
+        if not custom_folder_path:
+            custom_folder_path = '/'
+
+        upload_link_dict = self.get_custom_file_upload_link(parse.unquote(custom_folder_path))
+        upload_link = upload_link_dict.get('upload_link') + '?ret-json=1'
+        parent_path = upload_link_dict.get('parent_path')
+        relative_path = upload_link_dict.get('relative_path')
+
+        response = requests.post(upload_link, data={
+            'parent_dir': parent_path,
+            'relative_path': relative_path,
+            'replace': 0
+        }, files={
+            'file': (name, open(local_path, 'rb'))
+        }, timeout=self.timeout)
+        d = response.json()[0]
+
+        file_name = d.get('name')
+        return self.get_custom_file_info(custom_folder_path, file_name)
+
+
+    def get_custom_file_info(self, path, name):
+        url = self._app_custom_asset_file_url()
+        params = {'path': path, 'name': name}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        d = data['dirent']
+        file_name = d.get('obj_name')
+        file_name_ext = file_name.split('.')[-1]
+        asset_uuid = d.get('uuid')
+
+        return {
+            'type': 'file',
+            'size': d.get('file_size'),
+            'name': d.get('obj_name'),
+            'url': 'custom-asset://%s.%s' % (asset_uuid, file_name_ext)
+        }
+
+    def list_custom_assets(self, path):
+        url = self._app_custom_asset_dir_url()
+        params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
 
 
 
