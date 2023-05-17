@@ -1,4 +1,5 @@
 import io
+import time
 import json
 import re
 from datetime import datetime, timedelta
@@ -201,6 +202,16 @@ class SeaTableAPI(object):
             'server_url': self.server_url,
             'token': token
         }
+
+    def _smart_fill_from_text_url(self):
+        return self.server_url + '/api/v2.1/smart-fill-from-text/'
+
+    def _smart_fill_from_column_url(self):
+        return self.server_url + '/api/v2.1/smart-fill-from-column/'
+
+    def _smart_fill_task_status_url(self, task_id):
+        return self.server_url + '/api/v2.1/smart-fill-task-status/?dtable_uuid=' + \
+            self.dtable_uuid + '&task_id=' + str(task_id)
 
     def _get_account_detail(self, account_name):
         url = self._third_party_accounts_url()
@@ -956,7 +967,6 @@ class SeaTableAPI(object):
         response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
 
-
     def big_data_insert_rows(self, table_name, rows_data):
         url = self._dtable_db_insert_rows_url()
         json_data = {
@@ -966,6 +976,61 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    # ----- ----- ----- AI ----- ----- ----- #
+
+    def smart_fill_from_text(self, table_name, long_text, columns):
+        """
+        :param table_name: str
+        :param long_text: str
+        :param columns: list
+        :return: dict
+        """
+        url = self._smart_fill_from_text_url()
+        json_data = {
+            'dtable_uuid': self.dtable_uuid,
+            'table_name': table_name,
+            'long_text': long_text,
+            'columns': columns,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def smart_fill_from_column(self, table_name, long_text_column_name, columns, start=0, limit=10):
+        """
+        :param table_name: str
+        :param long_text_column_name: str
+        :param columns: list
+        :param start: int
+        :param limit: int
+        :return: dict
+        """
+        url = self._smart_fill_from_column_url()
+        json_data = {
+            'dtable_uuid': self.dtable_uuid,
+            'table_name': table_name,
+            'long_text_column_name': long_text_column_name,
+            'columns': columns,
+            'start': start,
+            'limit': limit,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    def smart_fill_task_status(self, task_id):
+        """
+        :param task_id: str
+        :return: dict
+        """
+        url = self._smart_fill_task_status_url(task_id)
+        print('start check task status, please wait...')
+        for i in range(300):
+            time.sleep(1)
+            response = requests.get(url, headers=self.headers, timeout=self.timeout)
+            response = parse_response(response)
+            is_finished = response['is_finished']
+            if is_finished:
+                return response
+        return {'error': 'smart fill task status timeout'}
 
     ####   custom assets ######
     def get_custom_file_download_link(self, path):
