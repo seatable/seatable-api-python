@@ -305,7 +305,7 @@ class ColumnsParser(object):
             elif column_type == ColumnTypes.COLLABORATOR:
                 column_type = ColumnTypes.TEXT
         except Exception as e:
-            print('[Warning] get', column_type.value, 'column data error:', e)
+            print('[Warning] get', column_type.value, column_name, 'column data error:', e)
         return column_type, column_data
 
     def get_column_type(self, values):
@@ -382,6 +382,8 @@ class ColumnsParser(object):
             column_type = self.get_column_type(values)
             column_type, column_data = self.get_column_data(
                 link_map, table_name, column_name, column_type, values)
+            if column_type == ColumnTypes.LINK and not column_data:
+                continue
             column = {
                 'name': column_name,
                 'type': column_type,
