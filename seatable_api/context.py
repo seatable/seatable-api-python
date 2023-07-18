@@ -55,8 +55,8 @@ class Context:
 
     @property
     @need_data
-    def id_in_org(self):
-        return context_data.get('id_in_org')
+    def current_id_in_org(self):
+        return context_data.get('current_id_in_org')
 
     @need_data
     def get_setting_by_key(self, key):
