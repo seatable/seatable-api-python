@@ -163,6 +163,9 @@ class SeaTableAPI(object):
     def _app_upload_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-upload-link/'
 
+    def _app_user_info_url(self):
+        return self.server_url + '/api/v2.1/dtable/app-user-info/'
+
     def _column_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/columns/'
 
@@ -1042,6 +1045,15 @@ class SeaTableAPI(object):
     def list_custom_assets(self, path):
         url = self._app_custom_asset_dir_url()
         params = {'path': path}
+        headers = parse_headers(self.token)
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
+        data = parse_response(response)
+        return data
+
+
+    def get_user_info(self, username):
+        url = self._app_user_info_url()
+        params = {'username': username}
         headers = parse_headers(self.token)
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
