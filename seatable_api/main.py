@@ -8,7 +8,7 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
-from seatable_api.exception import AuthExpiredError
+from seatable_api.exception import AuthExpiredError, BaseUnauthError
 from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
@@ -50,6 +50,18 @@ def like_table_id(value):
     return re.match(r'^[-0-9a-zA-Z]{4}$', value)
 
 
+
+def check_auth(func):
+
+    def wrapper(obj, *args, **kwargs):
+        if not obj.is_authed:
+            raise BaseUnauthError
+
+        return func(obj, *args, **kwargs)
+
+    return wrapper
+
+
 class SeaTableAPI(object):
     """SeaTable API
     """
@@ -71,6 +83,7 @@ class SeaTableAPI(object):
         self.dtable_name = None
         self.timeout = 30
         self.socketIO = None
+        self.is_authed = False
 
     def __str__(self):
         return '<SeaTable Base [ %s ]>' % self.dtable_name
@@ -86,6 +99,7 @@ class SeaTableAPI(object):
         clone.dtable_uuid = self.dtable_uuid
         clone.dtable_name = self.dtable_name
         clone.timeout = self.timeout
+        clone.is_authed = self.is_authed
         return clone
 
     def _get_msg_sender_by_account(self, account_name):
@@ -117,6 +131,8 @@ class SeaTableAPI(object):
             base = self._clone()
             self.socketIO = SocketIO(base)
             self.socketIO._connect()
+
+        self.is_authed = True
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -216,18 +232,21 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('account')
 
+    @check_auth
     def send_email(self, account_name, msg,  **kwargs):
         msg_sender = self._get_msg_sender_by_account(account_name)
         if not msg_sender or msg_sender.msg_type != 'email':
             raise ValueError('Email message sender does not configered.')
         msg_sender.send_msg(msg, **kwargs)
 
+    @check_auth
     def send_wechat_msg(self, account_name, msg):
         msg_sender = self._get_msg_sender_by_account(account_name)
         if not msg_sender or msg_sender.msg_type != 'wechat':
             raise ValueError('Wechat message sender does not configered.')
         msg_sender.send_msg(msg)
 
+    @check_auth
     def get_metadata(self):
         """
         :return: dict
@@ -237,6 +256,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('metadata')
 
+    @check_auth
     def add_table(self, table_name, lang='en', columns=[]):
         """
         :param table_name: str
@@ -253,6 +273,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None):
         """
         :param table_name: str
@@ -283,6 +304,8 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('rows')
 
+
+    @check_auth
     def get_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -300,6 +323,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def append_row(self, table_name, row_data):
         """
         :param table_name: str
@@ -315,6 +339,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def batch_append_rows(self, table_name, rows_data):
         """
         :param table_name: str
@@ -330,6 +355,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def insert_row(self, table_name, row_data, anchor_row_id):
         """
         :param table_name: str
@@ -347,6 +373,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def update_row(self, table_name, row_id, row_data):
         """
         :param table_name: str
@@ -364,6 +391,7 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def batch_update_rows(self, table_name, rows_data):
         """
         :param table_name: str
@@ -380,6 +408,7 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def delete_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -395,6 +424,7 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def batch_delete_rows(self, table_name, row_ids):
         """
         :param table_name: str
@@ -410,6 +440,7 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
         """
         :param table_name: str
@@ -452,6 +483,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('rows')
 
+    @check_auth
     def get_file_download_link(self, path):
         """
         :param path: str
@@ -464,6 +496,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('download_link')
 
+    @check_auth
     def get_file_upload_link(self):
         """
         :return: dict
@@ -474,6 +507,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def add_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
         :param link_id: str
@@ -497,6 +531,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
         :param link_id: str
@@ -520,6 +555,7 @@ class SeaTableAPI(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
@@ -545,6 +581,7 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
@@ -570,6 +607,7 @@ class SeaTableAPI(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def get_linked_records(self, table_id, link_column_key, rows):
         """
         :param table_id:  str
@@ -585,6 +623,7 @@ class SeaTableAPI(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
+    @check_auth
     def list_columns(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -603,6 +642,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('columns')
 
+    @check_auth
     def get_column_link_id(self, table_name, column_name, view_name=None):
         columns = self.list_columns(table_name, view_name)
         for column in columns:
@@ -610,6 +650,7 @@ class SeaTableAPI(object):
                 return column.get('data', {}).get('link_id')
         raise ValueError('link type column "%s" does not exist in current view' % column_name)
 
+    @check_auth
     def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
         """
         :param table_name: str
@@ -637,6 +678,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def rename_column(self, table_name, column_key, new_column_name):
         """
         :param table_name: str
@@ -657,6 +699,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def resize_column(self, table_name, column_key, new_column_width):
         """
         :param table_name: str
@@ -678,6 +721,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def freeze_column(self, table_name, column_key, frozen):
         """
         :param table_name: str
@@ -698,6 +742,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def move_column(self, table_name, column_key, target_column_key):
         """
         :param table_name: str
@@ -718,6 +763,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def modify_column_type(self, table_name, column_key, new_column_type):
         """
         :param table_name: str
@@ -740,6 +786,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def add_column_options(self, table_name, column, options):
         """
         :param table_name: str
@@ -758,6 +805,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def add_column_cascade_settings(self, table_name, child_column, parent_column, cascade_settings):
         """
 
@@ -780,6 +828,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def delete_column(self, table_name, column_key):
         """
         :param table_name: str
@@ -797,6 +846,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
+    @check_auth
     def download_file(self, url, save_path):
         if not str(UUID(self.dtable_uuid)) in url:
             raise Exception('url invalid.')
@@ -808,6 +858,7 @@ class SeaTableAPI(object):
         with open(save_path, 'wb') as f:
             f.write(response.content)
 
+    @check_auth
     def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type=None, replace=False):
         """
         relative_path: relative path for upload, if None, default {file_type}s/{date of this month} eg: files/2020-09
@@ -848,6 +899,7 @@ class SeaTableAPI(object):
             'url': url
         }
 
+    @check_auth
     def upload_local_file(self, file_path, name=None, relative_path=None, file_type=None, replace=False):
         """
         relative_path: relative path for upload, if None, default {file_type}s/{date of today}, eg: files/2020-09
@@ -892,6 +944,7 @@ class SeaTableAPI(object):
             'url': url
         }
 
+    @check_auth
     def filter(self, table_name, conditions='', view_name=None):
         """
         :param table_name: str
@@ -906,6 +959,7 @@ class SeaTableAPI(object):
         queryset._execute_conditions()
         return queryset
 
+    @check_auth
     def query(self, sql, convert=True):
         """
         :param sql: str
@@ -928,10 +982,12 @@ class SeaTableAPI(object):
         else:
             return results
 
+    @check_auth
     def get_related_users(self):
         response = requests.get(self._get_related_users_url(), headers=self.headers)
         return parse_response(response)['user_list']
 
+    @check_auth
     def send_toast_notification(self, username, msg, toast_type='success'):
         url = self._send_toast_notification_url()
         requests.post(url, json={
@@ -942,6 +998,7 @@ class SeaTableAPI(object):
             }
         }, headers=self.headers)
 
+    @check_auth
     def add_workflow_task(self, workflow_token, row_data, initiator=None, link_rows=None, new_linked_rows=None):
         url = self._add_workflow_task_url(workflow_token)
         headers = {'Authorization': 'Token ' + self.jwt_token}
@@ -953,13 +1010,14 @@ class SeaTableAPI(object):
         }, headers=headers)
         return parse_response(response)['task']
 
+    @check_auth
     def add_workflow_task_with_existed_row(self, workflow_token, row_id, initiator=None):
         url = self._add_workflow_task_url(workflow_token)
         headers = {'Authorization': 'Token ' + self.jwt_token}
         response = requests.post(url, data={'row_id': row_id, 'initiator': initiator}, headers=headers)
         return parse_response(response)['task']
 
-
+    @check_auth
     def big_data_insert_rows(self, table_name, rows_data):
         url = self._dtable_db_insert_rows_url()
         json_data = {
@@ -971,6 +1029,7 @@ class SeaTableAPI(object):
 
 
     ####   custom assets ######
+    @check_auth
     def get_custom_file_download_link(self, path):
         """
         :param path: str
@@ -983,6 +1042,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('download_link')
 
+    @check_auth
     def get_custom_file_upload_link(self, path):
         url = self._app_custom_upload_link_url()
         params = {'path': path}
@@ -991,7 +1051,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
-
+    @check_auth
     def download_custom_file(self, path, save_path):
         download_link = self.get_custom_file_download_link(parse.unquote(path))
         response = requests.get(download_link, timeout=self.timeout)
@@ -1000,6 +1060,7 @@ class SeaTableAPI(object):
         with open(save_path, 'wb') as f:
             f.write(response.content)
 
+    @check_auth
     def upload_local_file_to_custom_folder(self, local_path, custom_folder_path = None, name=None, ):
         if not name:
             name = local_path.strip('/').split('/')[-1]
@@ -1023,7 +1084,7 @@ class SeaTableAPI(object):
         file_name = d.get('name')
         return self.get_custom_file_info(custom_folder_path, file_name)
 
-
+    @check_auth
     def get_custom_file_info(self, path, name):
         url = self._app_custom_asset_file_url()
         params = {'path': path, 'name': name}
@@ -1042,6 +1103,7 @@ class SeaTableAPI(object):
             'url': 'custom-asset://%s.%s' % (asset_uuid, file_name_ext)
         }
 
+    @check_auth
     def list_custom_assets(self, path):
         url = self._app_custom_asset_dir_url()
         params = {'path': path}
@@ -1050,7 +1112,7 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data
 
-
+    @check_auth
     def get_user_info(self, username):
         url = self._app_user_info_url()
         params = {'username': username}
