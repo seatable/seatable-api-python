@@ -643,12 +643,12 @@ class SeaTableAPI(object):
         return data.get('columns')
 
     @check_auth
-    def get_column_link_id(self, table_name, column_name, view_name=None):
-        columns = self.list_columns(table_name, view_name)
+    def get_column_link_id(self, table_name, column_name):
+        columns = self.list_columns(table_name)
         for column in columns:
             if column.get('name') == column_name and column.get('type') == 'link':
                 return column.get('data', {}).get('link_id')
-        raise ValueError('link type column "%s" does not exist in current view' % column_name)
+        raise ValueError('link type column "%s" does not exist in current table' % column_name)
 
     @check_auth
     def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
