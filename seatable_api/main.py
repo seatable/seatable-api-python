@@ -140,6 +140,9 @@ class SeaTableAPI(object):
     def _table_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/tables/'
 
+    def _view_server_url(self):
+        return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/views/'
+
     def _row_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/rows/'
 
@@ -256,6 +259,19 @@ class SeaTableAPI(object):
         data = parse_response(response)
         return data.get('metadata')
 
+
+    @check_auth
+    def list_tables(self):
+        meta = self.get_metadata()
+        return meta.get('tables') or []
+
+    @check_auth
+    def get_table_by_name(self, table_name):
+        tables = self.list_tables()
+        for t in tables:
+            if t.get('name') == table_name:
+                return t
+
     @check_auth
     def add_table(self, table_name, lang='en', columns=[]):
         """
@@ -271,6 +287,83 @@ class SeaTableAPI(object):
         if columns:
             json_data['columns'] = columns
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def rename_table(self, table_name, new_table_name):
+        url = self._table_server_url()
+        json_data = {
+            'table_name': table_name,
+            'new_table_name': new_table_name
+        }
+        response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def delete_table(self, table_name):
+        url = self._table_server_url()
+        json_data = {
+            'table_name': table_name,
+        }
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def list_views(self, table_name):
+        url = self._view_server_url()
+        params = {
+            'table_name': table_name
+        }
+        response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def get_view_by_name(self, table_name, view_name):
+        url = self._view_server_url()
+        view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
+            "url": url.rstrip('/'),
+            'view_name': view_name,
+            'table_name': table_name
+        })
+        response = requests.get(view_url, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def add_view(self, table_name, view_name):
+        url = self._view_server_url()
+        view_url = '%(url)s/?table_name=%(table_name)s' % ({
+            "url": url.rstrip('/'),
+            'table_name': table_name
+        })
+        json_data = {
+            'name': view_name
+        }
+        response = requests.post(view_url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def rename_view(self, table_name, view_name, new_view_name):
+        url = self._view_server_url()
+        view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
+            "url": url.rstrip('/'),
+            'view_name': view_name,
+            'table_name': table_name
+        })
+        json_data = {
+            'name': new_view_name
+        }
+        response = requests.put(view_url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+    @check_auth
+    def delete_view(self, table_name, view_name):
+        url = self._view_server_url()
+        view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
+            "url": url.rstrip('/'),
+            'view_name': view_name,
+            'table_name': table_name
+        })
+        response = requests.delete(view_url, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     @check_auth
@@ -649,6 +742,22 @@ class SeaTableAPI(object):
             if column.get('name') == column_name and column.get('type') == 'link':
                 return column.get('data', {}).get('link_id')
         raise ValueError('link type column "%s" does not exist in current table' % column_name)
+
+    @check_auth
+    def get_column_by_name(self, table_name, column_name):
+        columns = self.list_columns(table_name)
+        for col in columns:
+            if col.get('name') == column_name:
+                return col
+
+    @check_auth
+    def get_columns_by_type(self, table_name, column_type:ColumnTypes):
+        if column_type not in ColumnTypes:
+            raise ValueError("type %s invalid!" % (column_type,))
+        columns = self.list_columns(table_name)
+        cols_results = [col for col in columns if col.get('type') == column_type.value]
+        return cols_results
+
 
     @check_auth
     def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
