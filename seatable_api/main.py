@@ -15,6 +15,7 @@ from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN,
 from .socket_io import SocketIO
 from .query import QuerySet
 from .utils import convert_db_rows
+from .date_utils import dateutils
 
 
 def parse_headers(token):
@@ -1005,7 +1006,8 @@ class SeaTableAPI(object):
             'type': file_type,
             'size': d.get('size'),
             'name': d.get('name'),
-            'url': url
+            'url': url,
+            'upload_time': dateutils.utcnow()
         }
 
     @check_auth
@@ -1050,7 +1052,8 @@ class SeaTableAPI(object):
             'type': file_type,
             'size': d.get('size'),
             'name': d.get('name'),
-            'url': url
+            'url': url,
+            'upload_time': dateutils.utcnow()
         }
 
     @check_auth

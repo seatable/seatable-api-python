@@ -226,6 +226,13 @@ class DateQuarter:
 
 class DateUtils(object):
 
+    @classmethod
+    def utcnow(cls):
+        now = datetime.datetime.now()
+        utc_timezone = datetime.timezone.utc
+        isoformat_timestr = now.astimezone(utc_timezone).isoformat()
+        return isoformat_timestr
+
     def _isoformat(self, d, format_str="%Y-%m-%d"):
         if not isinstance(d, (datetime.date, datetime.datetime)):
             raise ValueError('datetime type error')
