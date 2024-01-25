@@ -20,6 +20,7 @@ jobs:
           pip install ply
           pip install python_dateutil
           pip install python-socketio
+          pip install pytz
 
       - name: run dateutils test
         run: |
