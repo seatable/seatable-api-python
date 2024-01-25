@@ -2,7 +2,6 @@ import datetime
 import calendar
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
-import pytz
 
 
 DATETIME_FORMAT = {
@@ -225,12 +224,14 @@ class DateQuarter:
             yield end
 
 
+
 class DateUtils(object):
 
     @classmethod
     def utcnow(cls):
         now = datetime.datetime.now()
-        isoformat_timestr = now.astimezone(pytz.timezone('UTC')).isoformat()
+        utc_timezone = datetime.timezone.utc
+        isoformat_timestr = now.astimezone(utc_timezone).isoformat()
         return isoformat_timestr
 
     def _isoformat(self, d, format_str="%Y-%m-%d"):
