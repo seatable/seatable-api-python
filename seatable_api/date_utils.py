@@ -224,7 +224,6 @@ class DateQuarter:
             yield end
 
 
-
 class DateUtils(object):
 
     @classmethod
