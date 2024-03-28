@@ -8,47 +8,14 @@ from uuid import UUID
 # https://requests.readthedocs.io
 import requests
 
+from seatable_api.api_gateway import APIGateway
 from seatable_api.exception import AuthExpiredError, BaseUnauthError
 from seatable_api.message import get_sender_by_account
 from .constants import ROW_FILTER_KEYS, ColumnTypes
 from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
 from .socket_io import SocketIO
 from .query import QuerySet
-from .utils import convert_db_rows
-
-
-def parse_headers(token):
-    return {
-        'Authorization': 'Token ' + token,
-        'Content-Type': 'application/json',
-    }
-
-
-def parse_server_url(server_url):
-    return server_url.rstrip('/')
-
-
-def parse_response(response):
-    if response.status_code >= 400:
-        try:
-            err_data = json.loads(response.text)
-        except:
-            err_data = {}
-        if err_data.get("error_msg") == "Token expired." and \
-            response.status_code == 403:
-            raise AuthExpiredError
-
-        raise ConnectionError(response.status_code, response.text)
-    else:
-        try:
-            data = json.loads(response.text)
-            return data
-        except:
-            pass
-
-def like_table_id(value):
-    return re.match(r'^[-0-9a-zA-Z]{4}$', value)
-
+from .utils import convert_db_rows, parse_server_url, parse_headers, like_table_id, parse_response
 
 
 def check_auth(func):
@@ -56,9 +23,15 @@ def check_auth(func):
     def wrapper(obj, *args, **kwargs):
         if not obj.is_authed:
             raise BaseUnauthError
-
         return func(obj, *args, **kwargs)
+    return wrapper
 
+def api_gateway_wrapper(func):
+    def wrapper(obj, *args, **kwargs):
+        if obj.use_api_gateway:
+            new_obj = obj.api_gateway
+            return getattr(new_obj, func.__name__)(*args, **kwargs)
+        return func(obj, *args, **kwargs)
     return wrapper
 
 
@@ -85,6 +58,9 @@ class SeaTableAPI(object):
         self.socketIO = None
         self.is_authed = False
 
+        self.use_api_gateway = False
+        self.api_gateway = None
+
     def __str__(self):
         return '<SeaTable Base [ %s ]>' % self.dtable_name
 
@@ -100,6 +76,9 @@ class SeaTableAPI(object):
         clone.dtable_name = self.dtable_name
         clone.timeout = self.timeout
         clone.is_authed = self.is_authed
+
+        clone.use_api_gateway = self.use_api_gateway
+        clone.api_gateway = self.api_gateway
         return clone
 
     def _get_msg_sender_by_account(self, account_name):
@@ -126,6 +105,17 @@ class SeaTableAPI(object):
         self.workspace_id = data.get('workspace_id')
         self.dtable_uuid = data.get('dtable_uuid')
         self.dtable_name = data.get('dtable_name')
+
+        # api gateway entry
+        self.use_api_gateway = data.get('use_api_gateway')
+        if self.use_api_gateway:
+            self.api_gateway = APIGateway(
+                token = self.token,
+                api_gateway_url=self.server_url + '/api-gateway',
+                server_url=self.server_url,
+                headers=self.headers,
+                dtable_uuid=self.dtable_uuid
+            )
 
         if with_socket_io is True:
             base = self._clone()
@@ -250,6 +240,7 @@ class SeaTableAPI(object):
         msg_sender.send_msg(msg)
 
     @check_auth
+    @api_gateway_wrapper
     def get_metadata(self):
         """
         :return: dict
@@ -261,11 +252,13 @@ class SeaTableAPI(object):
 
 
     @check_auth
+    @api_gateway_wrapper
     def list_tables(self):
         meta = self.get_metadata()
         return meta.get('tables') or []
 
     @check_auth
+    @api_gateway_wrapper
     def get_table_by_name(self, table_name):
         tables = self.list_tables()
         for t in tables:
@@ -273,6 +266,7 @@ class SeaTableAPI(object):
                 return t
 
     @check_auth
+    @api_gateway_wrapper
     def add_table(self, table_name, lang='en', columns=[]):
         """
         :param table_name: str
@@ -290,6 +284,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def rename_table(self, table_name, new_table_name):
         url = self._table_server_url()
         json_data = {
@@ -300,6 +295,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def delete_table(self, table_name):
         url = self._table_server_url()
         json_data = {
@@ -309,6 +305,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def list_views(self, table_name):
         url = self._view_server_url()
         params = {
@@ -318,6 +315,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def get_view_by_name(self, table_name, view_name):
         url = self._view_server_url()
         view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
@@ -329,6 +327,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def add_view(self, table_name, view_name):
         url = self._view_server_url()
         view_url = '%(url)s/?table_name=%(table_name)s' % ({
@@ -342,6 +341,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def rename_view(self, table_name, view_name, new_view_name):
         url = self._view_server_url()
         view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
@@ -356,6 +356,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def delete_view(self, table_name, view_name):
         url = self._view_server_url()
         view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
@@ -367,6 +368,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None):
         """
         :param table_name: str
@@ -399,6 +401,7 @@ class SeaTableAPI(object):
 
 
     @check_auth
+    @api_gateway_wrapper
     def get_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -417,6 +420,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def append_row(self, table_name, row_data):
         """
         :param table_name: str
@@ -433,6 +437,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def batch_append_rows(self, table_name, rows_data):
         """
         :param table_name: str
@@ -449,6 +454,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def insert_row(self, table_name, row_data, anchor_row_id):
         """
         :param table_name: str
@@ -467,6 +473,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def update_row(self, table_name, row_id, row_data):
         """
         :param table_name: str
@@ -485,6 +492,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def batch_update_rows(self, table_name, rows_data):
         """
         :param table_name: str
@@ -502,6 +510,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def delete_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -518,6 +527,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def batch_delete_rows(self, table_name, row_ids):
         """
         :param table_name: str
@@ -534,6 +544,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
         """
         :param table_name: str
@@ -601,6 +612,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def add_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
         :param link_id: str
@@ -625,6 +637,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
         :param link_id: str
@@ -649,6 +662,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
@@ -675,6 +689,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
@@ -717,6 +732,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def list_columns(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -736,6 +752,7 @@ class SeaTableAPI(object):
         return data.get('columns')
 
     @check_auth
+    @api_gateway_wrapper
     def get_column_link_id(self, table_name, column_name):
         columns = self.list_columns(table_name)
         for column in columns:
@@ -744,6 +761,7 @@ class SeaTableAPI(object):
         raise ValueError('link type column "%s" does not exist in current table' % column_name)
 
     @check_auth
+    @api_gateway_wrapper
     def get_column_by_name(self, table_name, column_name):
         columns = self.list_columns(table_name)
         for col in columns:
@@ -751,6 +769,7 @@ class SeaTableAPI(object):
                 return col
 
     @check_auth
+    @api_gateway_wrapper
     def get_columns_by_type(self, table_name, column_type:ColumnTypes):
         if column_type not in ColumnTypes:
             raise ValueError("type %s invalid!" % (column_type,))
@@ -760,6 +779,7 @@ class SeaTableAPI(object):
 
 
     @check_auth
+    @api_gateway_wrapper
     def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
         """
         :param table_name: str
@@ -788,6 +808,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def rename_column(self, table_name, column_key, new_column_name):
         """
         :param table_name: str
@@ -809,6 +830,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def resize_column(self, table_name, column_key, new_column_width):
         """
         :param table_name: str
@@ -831,6 +853,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def freeze_column(self, table_name, column_key, frozen):
         """
         :param table_name: str
@@ -852,6 +875,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def move_column(self, table_name, column_key, target_column_key):
         """
         :param table_name: str
@@ -873,6 +897,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def modify_column_type(self, table_name, column_key, new_column_type):
         """
         :param table_name: str
@@ -896,6 +921,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def add_column_options(self, table_name, column, options):
         """
         :param table_name: str
@@ -915,6 +941,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def add_column_cascade_settings(self, table_name, child_column, parent_column, cascade_settings):
         """
 
@@ -938,6 +965,7 @@ class SeaTableAPI(object):
         return data
 
     @check_auth
+    @api_gateway_wrapper
     def delete_column(self, table_name, column_key):
         """
         :param table_name: str
@@ -1069,6 +1097,7 @@ class SeaTableAPI(object):
         return queryset
 
     @check_auth
+    @api_gateway_wrapper
     def query(self, sql, convert=True):
         """
         :param sql: str
@@ -1097,6 +1126,7 @@ class SeaTableAPI(object):
         return parse_response(response)['user_list']
 
     @check_auth
+    @api_gateway_wrapper
     def send_toast_notification(self, username, msg, toast_type='success'):
         url = self._send_toast_notification_url()
         requests.post(url, json={
@@ -1127,6 +1157,7 @@ class SeaTableAPI(object):
         return parse_response(response)['task']
 
     @check_auth
+    @api_gateway_wrapper
     def big_data_insert_rows(self, table_name, rows_data):
         url = self._dtable_db_insert_rows_url()
         json_data = {
