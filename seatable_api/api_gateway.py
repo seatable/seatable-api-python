@@ -27,17 +27,6 @@ class APIGateway(object):
         self.token = token
         self.timeout = 30
 
-    def _get_table_id_by_name(self, table_name):
-        if self._cache_table_name_id_map:
-            return self._cache_table_name_id_map.get(table_name)
-        tables = self.list_tables()
-        table_name_id_map = {t.get('name'): t.get('_id') for t in tables}
-        self._cache_table_name_id_map = table_name_id_map
-        return table_name_id_map.get(table_name) or table_name
-
-    def _clean_table_cache(self):
-        self._cache_table_name_id_map = {}
-    
     def _metadata_server_url(self):
         return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/metadata/'
 
@@ -122,7 +111,6 @@ class APIGateway(object):
         if columns:
             json_data['columns'] = columns
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
-        self._clean_table_cache()
         return parse_response(response)
 
     def rename_table(self, table_name, new_table_name):
@@ -132,7 +120,6 @@ class APIGateway(object):
             'new_table_name': new_table_name
         }
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
-        self._clean_table_cache()
         return parse_response(response)
 
     def delete_table(self, table_name):
@@ -141,7 +128,6 @@ class APIGateway(object):
             'table_name': table_name,
         }
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
-        self._clean_table_cache()
         return parse_response(response)
 
     def list_views(self, table_name):
@@ -419,14 +405,16 @@ class APIGateway(object):
         :param other_row_id: str
         """
         url = self._row_link_server_url()
-        table_id = self._get_table_id_by_name(table_name)
-        other_table_id = self._get_table_id_by_name(other_table_name)
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
             'other_rows_ids_map': {row_id: [other_row_id, ]}
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
 
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
@@ -441,15 +429,16 @@ class APIGateway(object):
         :param other_row_id: str
         """
         url = self._row_link_server_url()
-        table_id = self._get_table_id_by_name(table_name)
-        other_table_id = self._get_table_id_by_name(other_table_name)
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
             'other_rows_ids_map': {row_id: [other_row_id, ]}
         }
-
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
@@ -465,15 +454,17 @@ class APIGateway(object):
         if not isinstance(other_rows_ids, list):
             raise ValueError('params other_rows_ids requires type list')
         url = self._row_link_server_url()
-        table_id = self._get_table_id_by_name(table_name)
-        other_table_id = self._get_table_id_by_name(other_table_name)
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
             'row_id_list': [row_id, ],
             'other_rows_ids_map': {row_id: other_rows_ids}
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
 
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
@@ -488,16 +479,17 @@ class APIGateway(object):
         :param other_rows_ids_map: dict
         """
         url = self._batch_update_row_link_server_url()
-
-        table_id = self._get_table_id_by_name(table_name)
-        other_table_id = self._get_table_id_by_name(other_table_name)
         json_data = {
             'link_id': link_id,
-            'table_id': table_id,
-            'other_table_id': other_table_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
             'row_id_list': row_id_list,
             'other_rows_ids_map': other_rows_ids_map,
         }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
