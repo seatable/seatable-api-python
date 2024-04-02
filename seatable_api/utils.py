@@ -1,5 +1,8 @@
 import json
+import re
 from datetime import datetime
+
+from seatable_api.exception import AuthExpiredError
 
 
 def _get_row(data):
@@ -184,3 +187,37 @@ def convert_db_rows(metadata, results):
         converted_results.append(item)
 
     return converted_results
+
+
+def parse_headers(token):
+    return {
+        'Authorization': 'Token ' + token,
+        'Content-Type': 'application/json',
+    }
+
+
+def parse_server_url(server_url):
+    return server_url.rstrip('/')
+
+
+def parse_response(response):
+    if response.status_code >= 400:
+        try:
+            err_data = json.loads(response.text)
+        except:
+            err_data = {}
+        if err_data.get("error_msg") == "Token expired." and \
+                response.status_code == 403:
+            raise AuthExpiredError
+
+        raise ConnectionError(response.status_code, response.text)
+    else:
+        try:
+            data = json.loads(response.text)
+            return data
+        except:
+            pass
+
+
+def like_table_id(value):
+    return re.match(r'^[-0-9a-zA-Z]{4}$', value)
