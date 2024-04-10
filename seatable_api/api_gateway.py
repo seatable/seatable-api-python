@@ -236,7 +236,7 @@ class APIGateway(object):
         return data
 
     
-    def append_row(self, table_name, row_data):
+    def append_row(self, table_name, row_data, apply_default=None):
         """
         :param table_name: str
         :param row_data: dict
@@ -248,11 +248,13 @@ class APIGateway(object):
         }
         if like_table_id(table_name):
             json_data['table_id'] = table_name
+        if apply_default is not None:
+            json_data['apply_default'] = apply_default
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     
-    def batch_append_rows(self, table_name, rows_data):
+    def batch_append_rows(self, table_name, rows_data, apply_default=None):
         """
         :param table_name: str
         :param rows_data: dict
@@ -264,11 +266,13 @@ class APIGateway(object):
         }
         if like_table_id(table_name):
             json_data['table_id'] = table_name
+        if apply_default is not None:
+            json_data['apply_default'] = apply_default
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
     
-    def insert_row(self, table_name, row_data, anchor_row_id):
+    def insert_row(self, table_name, row_data, anchor_row_id, apply_default=None):
         """
         :param table_name: str
         :param row_data: dict
@@ -282,6 +286,8 @@ class APIGateway(object):
         }
         if like_table_id(table_name):
             json_data['table_id'] = table_name
+        if apply_default is not None:
+            json_data['apply_default'] = apply_default
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
