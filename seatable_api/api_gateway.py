@@ -40,7 +40,7 @@ class APIGateway(object):
         return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/rows/'
 
     def _batch_row_server_url(self):
-        return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/batch-append-rows/'
+        return self._row_server_url()
 
     def _batch_update_row_server_url(self):
         return self._row_server_url()
@@ -244,7 +244,7 @@ class APIGateway(object):
         url = self._row_server_url()
         json_data = {
             'table_name': table_name,
-            'row': row_data,
+            'rows': [row_data,]
         }
         if like_table_id(table_name):
             json_data['table_id'] = table_name
