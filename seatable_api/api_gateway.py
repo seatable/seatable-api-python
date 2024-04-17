@@ -251,7 +251,8 @@ class APIGateway(object):
         if apply_default is not None:
             json_data['apply_default'] = apply_default
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
-        return parse_response(response)
+        data = parse_response(response)
+        return data.get('first_row')
 
     
     def batch_append_rows(self, table_name, rows_data, apply_default=None):
