@@ -70,7 +70,7 @@ class APIGateway(object):
         return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/sql'
 
     def _dtable_db_insert_rows_url(self):
-        return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/insert-archived-rows/'
+        return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/add-archived-rows/'
 
     def _send_toast_notification_url(self):
         return '%(dtable_server_url)s/api/v2/dtables/%(dtable_uuid)s/ui-toasts/' % {
