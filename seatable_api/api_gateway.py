@@ -279,20 +279,9 @@ class APIGateway(object):
         :param row_data: dict
         :param anchor_row_id: str
         """
-        url = self._row_server_url()
-        json_data = {
-            'table_name': table_name,
-            'row': row_data,
-            'anchor_row_id': anchor_row_id,
-        }
-        if like_table_id(table_name):
-            json_data['table_id'] = table_name
-        if apply_default is not None:
-            json_data['apply_default'] = apply_default
-        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
-        return parse_response(response)
+        return self.append_row(table_name, row_data, apply_default=apply_default)
+        
 
-    
     def update_row(self, table_name, row_id, row_data):
         """
         :param table_name: str
