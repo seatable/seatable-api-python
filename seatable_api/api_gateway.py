@@ -199,7 +199,8 @@ class APIGateway(object):
         """
         url = self._row_server_url()
         params = {
-            'table_name': table_name
+            'table_name': table_name,
+            'convert_keys': True
         }
 
         if like_table_id(table_name):
@@ -226,7 +227,8 @@ class APIGateway(object):
         """
         url = self._row_server_url() + row_id + '/'
         params = {
-            'table_name': table_name
+            'table_name': table_name,
+            'convert_keys': True
         }
 
         if like_table_id(table_name):
