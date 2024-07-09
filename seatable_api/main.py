@@ -156,7 +156,7 @@ class SeaTableAPI(object):
 
     def _app_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/app-download-link/'
-    
+
     def _app_custom_download_link_url(self):
         return self.server_url + '/api/v2.1/dtable/custom/app-download-link/'
 
@@ -722,6 +722,7 @@ class SeaTableAPI(object):
         return parse_response(response)
 
     @check_auth
+    @api_gateway_wrapper
     def get_linked_records(self, table_id, link_column_key, rows):
         """
         :param table_id:  str

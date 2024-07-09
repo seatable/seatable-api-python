@@ -54,6 +54,9 @@ class APIGateway(object):
     def _row_link_server_url(self):
         return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/links/'
 
+    def _query_links_server_url(self):
+        return self.api_gateway_url + '/api/v2/dtables/' + self.dtable_uuid + '/query-links/'
+
     def _batch_update_row_link_server_url(self):
         return self._row_link_server_url()
 
@@ -148,7 +151,7 @@ class APIGateway(object):
         response = requests.get(view_url, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def add_view(self, table_name, view_name):
         url = self._view_server_url()
         view_url = '%(url)s/?table_name=%(table_name)s' % ({
@@ -161,7 +164,7 @@ class APIGateway(object):
         response = requests.post(view_url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def rename_view(self, table_name, view_name, new_view_name):
         url = self._view_server_url()
         view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
@@ -175,7 +178,7 @@ class APIGateway(object):
         response = requests.put(view_url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def delete_view(self, table_name, view_name):
         url = self._view_server_url()
         view_url = '%(url)s/%(view_name)s/?table_name=%(table_name)s' % ({
@@ -186,7 +189,7 @@ class APIGateway(object):
         response = requests.delete(view_url, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def list_rows(self, table_name, view_name=None, order_by=None, desc=False, start=None, limit=None):
         """
         :param table_name: str
@@ -218,7 +221,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data.get('rows')
 
-    
+
     def get_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -237,7 +240,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def append_row(self, table_name, row_data, apply_default=None):
         """
         :param table_name: str
@@ -256,7 +259,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data.get('first_row')
 
-    
+
     def batch_append_rows(self, table_name, rows_data, apply_default=None):
         """
         :param table_name: str
@@ -274,7 +277,7 @@ class APIGateway(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def insert_row(self, table_name, row_data, anchor_row_id, apply_default=None):
         """
         :param table_name: str
@@ -282,7 +285,7 @@ class APIGateway(object):
         :param anchor_row_id: str
         """
         return self.append_row(table_name, row_data, apply_default=apply_default)
-        
+
 
     def update_row(self, table_name, row_id, row_data):
         """
@@ -301,7 +304,7 @@ class APIGateway(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def batch_update_rows(self, table_name, rows_data):
         """
         :param table_name: str
@@ -318,7 +321,7 @@ class APIGateway(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def delete_row(self, table_name, row_id):
         """
         :param table_name: str
@@ -334,7 +337,7 @@ class APIGateway(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def batch_delete_rows(self, table_name, row_ids):
         """
         :param table_name: str
@@ -350,7 +353,7 @@ class APIGateway(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def filter_rows(self, table_name, filters, view_name=None, filter_conjunction='And'):
         """
         :param table_name: str
@@ -417,7 +420,7 @@ class APIGateway(object):
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
         """
         :param link_id: str
@@ -440,7 +443,7 @@ class APIGateway(object):
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def update_link(self, link_id, table_name, other_table_name, row_id, other_rows_ids):
         """
         :param link_id: str
@@ -467,7 +470,7 @@ class APIGateway(object):
         response = requests.put(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
-    
+
     def batch_update_links(self, link_id, table_name, other_table_name, row_id_list, other_rows_ids_map):
         """
         :param link_id: str
@@ -492,6 +495,22 @@ class APIGateway(object):
         return parse_response(response)
 
 
+    def get_linked_records(self, table_id, link_column_key, rows):
+        """
+        :param table_id:  str
+        :param link_column_key: str
+        :param rows: list
+        """
+        url = self._query_links_server_url()
+        json_data = {
+            'table_id': table_id,
+            'link_column_key': link_column_key,
+            'rows': rows,
+        }
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+
+
     def list_columns(self, table_name, view_name=None):
         """
         :param table_name: str
@@ -510,7 +529,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data.get('columns')
 
-    
+
     def get_column_link_id(self, table_name, column_name):
         columns = self.list_columns(table_name)
         for column in columns:
@@ -518,14 +537,14 @@ class APIGateway(object):
                 return column.get('data', {}).get('link_id')
         raise ValueError('link type column "%s" does not exist in current table' % column_name)
 
-    
+
     def get_column_by_name(self, table_name, column_name):
         columns = self.list_columns(table_name)
         for col in columns:
             if col.get('name') == column_name:
                 return col
 
-    
+
     def get_columns_by_type(self, table_name, column_type: ColumnTypes):
         if column_type not in ColumnTypes:
             raise ValueError("type %s invalid!" % (column_type,))
@@ -533,7 +552,7 @@ class APIGateway(object):
         cols_results = [col for col in columns if col.get('type') == column_type.value]
         return cols_results
 
-    
+
     def insert_column(self, table_name, column_name, column_type, column_key=None, column_data=None):
         """
         :param table_name: str
@@ -561,7 +580,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def rename_column(self, table_name, column_key, new_column_name):
         """
         :param table_name: str
@@ -582,7 +601,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def resize_column(self, table_name, column_key, new_column_width):
         """
         :param table_name: str
@@ -604,7 +623,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def freeze_column(self, table_name, column_key, frozen):
         """
         :param table_name: str
@@ -625,7 +644,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def move_column(self, table_name, column_key, target_column_key):
         """
         :param table_name: str
@@ -646,7 +665,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def modify_column_type(self, table_name, column_key, new_column_type):
         """
         :param table_name: str
@@ -669,7 +688,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def add_column_options(self, table_name, column, options):
         """
         :param table_name: str
@@ -688,7 +707,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def add_column_cascade_settings(self, table_name, child_column, parent_column, cascade_settings):
         """
 
@@ -711,7 +730,7 @@ class APIGateway(object):
         data = parse_response(response)
         return data
 
-    
+
     def delete_column(self, table_name, column_key):
         """
         :param table_name: str
