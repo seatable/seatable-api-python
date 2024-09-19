@@ -600,6 +600,8 @@ class AirtableConvertor(object):
                 # Handle special cases
                 if seatable_column_type == ColumnTypes.DATE:
                     column_data = {'format': 'YYYY-MM-DD'}
+                elif seatable_column_type == ColumnTypes.NUMBER:
+                    column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
                 elif seatable_column_type == ColumnTypes.LINK:
                     # TODO: Read from link map
                     # column_data = {'other_table': ''}
