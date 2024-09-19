@@ -529,7 +529,6 @@ class AirtableConvertor(object):
     def convert_data(self):
         self.delete_demo_rows()
         self.get_airtable_row_map()
-        self.convert_select_columns()
         self.convert_rows()
         self.convert_links()
 
@@ -743,23 +742,6 @@ class AirtableConvertor(object):
             if rows:
                 row_ids = [row['_id'] for row in rows]
                 self.batch_delete_rows(table_name, row_ids)
-        print('[Info] Success\n')
-        time.sleep(1)
-
-    def convert_select_columns(self):
-        print('[Info] Convert select columns')
-        self.get_table_map()
-        for table_name in self.table_names:
-            columns = self.table_map[table_name]
-            airtable_rows = self.airtable_row_map[table_name]
-            select_columns = self.columns_parser.parse_select(
-                columns, airtable_rows)
-            for column in select_columns:
-                column_name = column['name']
-                options = column['options']
-                self.add_column_options(table_name, column_name, options)
-                print(
-                    '[Info] Added options to column [ %s ] in table <%s>' % (column_name, table_name))
         print('[Info] Success\n')
         time.sleep(1)
 
