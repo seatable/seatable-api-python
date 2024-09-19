@@ -98,8 +98,9 @@ class FilesConvertor(object):
 
 class RowsConvertor(object):
 
-    def __init__(self, files_convertor):
+    def __init__(self, files_convertor, excluded_column_types=[]):
         self.files_convertor = files_convertor
+        self.excluded_column_types = excluded_column_types
 
     def convert(self, columns, airtable_rows):
         rows = self.gen_rows(columns, airtable_rows)
@@ -226,6 +227,10 @@ class RowsConvertor(object):
             for column in columns:
                 column_name = column['name']
                 column_type = ColumnTypes(column['type'])
+
+                if column_type in self.excluded_column_types:
+                    continue
+
                 value = row.get(column_name)
                 if value is None:
                     continue
@@ -478,22 +483,24 @@ class AirtableAPI(object):
 
 class AirtableConvertor(object):
 
-    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[]):
+    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[], excluded_column_types=[]):
         """
         airtable_api_key: str
         airtable_base_id: str
         base: SeaTable Base
         table_names: list[str], eg: ['table_name1', 'table_name2']
         links: list[tuple], eg: [('table_name', 'column_name', 'other_table_name')]
+        excluded_column_types: list[ColumnTypes], e.g. [ColumnTypes.FORMULA, ColumnTypes.LINK_FORMULA]
         """
         self.airtable_api = AirtableAPI(airtable_api_key, airtable_base_id)
         self.base = base
         self.table_names = table_names
         self.first_columns = first_columns
         self.links = links
+        self.excluded_column_types = excluded_column_types
         self.columns_parser = ColumnsParser()
         self.files_convertor = FilesConvertor(airtable_api_key, base)
-        self.rows_convertor = RowsConvertor(self.files_convertor)
+        self.rows_convertor = RowsConvertor(self.files_convertor, self.excluded_column_types)
         self.links_convertor = LinksConvertor()
         self.get_first_column_map()
         self.get_link_map()
