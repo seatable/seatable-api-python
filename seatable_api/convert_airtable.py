@@ -480,6 +480,16 @@ class AirtableAPI(object):
             time.sleep(0.5)
         return all_rows
 
+    def get_schema(self):
+        url = f'{AIRTABLE_API_URL}meta/bases/{self.airtable_base_id}/tables'
+        headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
+
+        response = requests.get(url, headers=headers, timeout=60)
+        if response.status_code >= 400:
+            raise ConnectionError(response.status_code, response.text)
+
+        return response.json().get('tables', [])
+
 
 class AirtableConvertor(object):
 
@@ -507,7 +517,10 @@ class AirtableConvertor(object):
 
     def convert_metadata(self):
         self.get_airtable_row_map(is_demo=True)
-        self.get_airtable_column_map()
+
+        schema = self.airtable_api.get_schema()
+        self.parse_airtable_schema(schema)
+
         self.convert_tables()
         self.convert_columns()
         self.convert_rows(is_demo=True)
@@ -519,6 +532,130 @@ class AirtableConvertor(object):
         self.convert_select_columns()
         self.convert_rows()
         self.convert_links()
+
+    def parse_airtable_schema(self, schema):
+        self.airtable_column_map = {}
+
+        # AirTable -> SeaTable
+        COLUMN_MAPPING = {
+            # From https://airtable.com/developers/web/api/model/field-type
+            "singleLineText": ColumnTypes.TEXT,
+            "email": ColumnTypes.EMAIL,
+            "url": ColumnTypes.URL,
+            "multilineText": ColumnTypes.LONG_TEXT,
+            "number": ColumnTypes.NUMBER,
+            "percent": ColumnTypes.NUMBER,
+            "currency": ColumnTypes.NUMBER,
+            # TODO: Parse options
+            # TODO
+            "singleSelect": ColumnTypes.SINGLE_SELECT,
+            "multipleSelects": ColumnTypes.MULTIPLE_SELECT,
+            "singleCollaborator": ColumnTypes.TEXT,
+            "multipleCollaborators": ColumnTypes.TEXT,
+            "multipleRecordLinks": ColumnTypes.LINK,
+            "date": ColumnTypes.DATE,
+            "dateTime": ColumnTypes.DATE,
+            # SeaTable does not support phone number columns
+            "phoneNumber": ColumnTypes.TEXT,
+            "multipleAttachments": ColumnTypes.FILE,
+            "checkbox": ColumnTypes.CHECKBOX,
+            "formula": ColumnTypes.FORMULA,
+            # Is this correct?
+            "createdTime": ColumnTypes.CTIME,
+            #"rollup": '',
+            #"count": '',
+            #"lookup": '',
+            #"multipleLookupValues": '',
+            "autoNumber": ColumnTypes.AUTO_NUMBER,
+            # SeaTable does not support barcode columns
+            "barcode": ColumnTypes.TEXT,
+            "rating": ColumnTypes.RATE,
+            "richText": ColumnTypes.LONG_TEXT,
+            "duration": ColumnTypes.DURATION,
+            "lastModifiedTime": ColumnTypes.MTIME,
+            "button": ColumnTypes.BUTTON,
+            "createdBy": ColumnTypes.CREATOR,
+            "lastModifiedBy": ColumnTypes.LAST_MODIFIER,
+            #"externalSyncSource": '',
+            #"aiText": '',
+        }
+
+        for table in schema:
+            columns = []
+
+            for field in table['fields']:
+                column_name = field['name']
+                column_type = field['type']
+
+                # TODO: Check if this is necessary
+                if column_name == '_id':
+                    continue
+
+                seatable_column_type = COLUMN_MAPPING.get(column_type)
+
+                if seatable_column_type is None:
+                    print(f'[WARNING]: Unsupported column type {column_type} (table "{table["name"]}", column "{column_name}")')
+                    # TODO: Remove continue statement
+                    continue
+
+                # Handle special cases
+                if seatable_column_type == ColumnTypes.DATE:
+                    column_data = {'format': 'YYYY-MM-DD'}
+                elif seatable_column_type == ColumnTypes.LINK:
+                    # TODO: Read from link map
+                    # column_data = {'other_table': ''}
+                    other_table_name = self.link_map.get(table['name'], {}).get(column_name)
+
+                    if other_table_name is None:
+                        print(f'[WARNING] Could not find column "{column_name}" inside table "{table["name"]}" in link map')
+                        continue
+
+                    column_data = {'other_table': other_table_name}
+                # TODO: single-select
+                elif seatable_column_type in [ColumnTypes.SINGLE_SELECT, ColumnTypes.MULTIPLE_SELECT]:
+                    column_data = {
+                        'options': self.get_select_options(field['options']['choices']),
+                    }
+                elif seatable_column_type == ColumnTypes.DURATION:
+                    column_data = {
+                        'format': 'duration',
+                        # TODO: Read actual format from AirTable schema
+                        'duration_format': 'h:mm:ss',
+                    }
+                else:
+                    column_data = {}
+
+                column = {
+                    'name': column_name,
+                    'type': seatable_column_type,
+                    'data': column_data,
+                }
+
+                columns.append(column)
+
+            self.airtable_column_map[table['name']] = columns
+
+    def get_select_options(self, options):
+        return [{
+            'name': value['name'],
+            'id': self.random_num_id(),
+            'color': self.random_color(),
+            'textColor': TEXT_COLOR,
+        } for value in options]
+
+    def random_num_id(self):
+        num_str = '0123456789'
+        num = ''
+        for i in range(6):
+            num += random.choice(num_str)
+        return num
+
+    def random_color(self):
+        color_str = '0123456789ABCDEF'
+        color = '#'
+        for i in range(6):
+            color += random.choice(color_str)
+        return color
 
     def convert_tables(self):
         print('[Info] Convert tables')
@@ -656,15 +793,6 @@ class AirtableConvertor(object):
             self.airtable_row_map[table_name] = rows
         print('[Info] Success\n')
         return self.airtable_row_map
-
-    def get_airtable_column_map(self):
-        self.airtable_column_map = {}
-        for table_name in self.table_names:
-            airtable_rows = self.airtable_row_map[table_name]
-            columns = self.columns_parser.parse(
-                self.link_map, table_name, airtable_rows)
-            self.airtable_column_map[table_name] = columns
-        return self.airtable_column_map
 
     def get_table_map(self):
         self.table_map = {}
