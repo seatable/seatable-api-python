@@ -476,7 +476,7 @@ class AirtableAPI(object):
             logger.info('Got %d rows from Airtable "%s"', len(all_rows), table_name)
             if not offset:
                 break
-            time.sleep(0.5)
+            # time.sleep(0.5)
         return all_rows
 
     def get_schema(self):
@@ -882,4 +882,4 @@ class AirtableConvertor(object):
             self.base.batch_update_links(
                 link_id, table_id, other_table_id, row_id_split, other_rows_ids_map_split)
             logger.info('Added %d links to table "%s"', len(row_id_split), table_name)
-            time.sleep(0.5)
+            # time.sleep(0.5)
