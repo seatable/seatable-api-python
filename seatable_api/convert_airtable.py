@@ -539,6 +539,7 @@ class AirtableConvertor(object):
         # AirTable -> SeaTable
         COLUMN_MAPPING = {
             # From https://airtable.com/developers/web/api/model/field-type
+            # Note: Commented out column types are not supported and must be manually created
             "singleLineText": ColumnTypes.TEXT,
             "email": ColumnTypes.EMAIL,
             "url": ColumnTypes.URL,
@@ -546,8 +547,6 @@ class AirtableConvertor(object):
             "number": ColumnTypes.NUMBER,
             "percent": ColumnTypes.NUMBER,
             "currency": ColumnTypes.NUMBER,
-            # TODO: Parse options
-            # TODO
             "singleSelect": ColumnTypes.SINGLE_SELECT,
             "multipleSelects": ColumnTypes.MULTIPLE_SELECT,
             "singleCollaborator": ColumnTypes.TEXT,
@@ -624,6 +623,8 @@ class AirtableConvertor(object):
                         # TODO: Read actual format from AirTable schema
                         'duration_format': 'h:mm:ss',
                     }
+                elif seatable_column_type == ColumnTypes.FORMULA:
+                    column_data = {'formula': '"Formula to be defined"'}
                 else:
                     column_data = {}
 
