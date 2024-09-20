@@ -621,6 +621,8 @@ class AirtableConvertor(object):
                     }
                 elif seatable_column_type == ColumnTypes.FORMULA:
                     column_data = {'formula': '"Formula to be defined"'}
+                elif seatable_column_type == ColumnTypes.RATE:
+                    column_data = {'rate_max_number': field['options']['max']}
                 else:
                     column_data = {}
 
