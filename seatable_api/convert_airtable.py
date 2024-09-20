@@ -600,7 +600,14 @@ class AirtableConvertor(object):
                 if seatable_column_type == ColumnTypes.DATE:
                     column_data = {'format': 'YYYY-MM-DD'}
                 elif seatable_column_type == ColumnTypes.NUMBER:
-                    column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
+                    if column_type == 'number':
+                        column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
+                    elif column_type == 'percent':
+                        column_data = {'format': 'percent', 'decimal': 'dot', 'thousands': 'no'}
+                    elif column_type == 'currency':
+                        column_data = {'format': 'dollar', 'decimal': 'dot', 'thousands': 'no'}
+                    else:
+                        column_data = {}
                 elif seatable_column_type == ColumnTypes.LINK:
                     other_table_name = self.link_map.get(table['name'], {}).get(column_name)
 
