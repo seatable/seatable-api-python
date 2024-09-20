@@ -1,4 +1,6 @@
+import logging
 import re
+import sys
 import time
 import random
 import requests
@@ -23,6 +25,8 @@ ColumnTypes.BARCODE = 'barcode'
 FILE = 'file'
 IMAGE = 'image'
 
+logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S', stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger()
 
 class LinksConvertor(object):
 
@@ -42,7 +46,7 @@ class LinksConvertor(object):
                 row_id_list.append(row_id)
                 other_rows_ids_map[row_id] = link
         except Exception as e:
-            print('[Warning] gen links error:', e)
+            logger.exception('Error during link generation')
         links = {
             'link_id': link_data['link_id'],
             'table_id': link_data['table_id'],
@@ -75,7 +79,7 @@ class FilesConvertor(object):
                 name=name, content=content, file_type=file_type)
             return file_info
         except Exception as e:
-            print('[Warning] upload file error:', e)
+            logger.exception('Could not upload file')
             return None
 
     def batch_upload_files(self, value):
@@ -216,7 +220,7 @@ class RowsConvertor(object):
             else:  # DEFAULT
                 cell_data = str(value)
         except Exception as e:
-            print('[Warning] gen cell data error:', e)
+            logger.exception('Could not generate cell data')
             cell_data = str(value)
         return cell_data
 
@@ -473,8 +477,7 @@ class AirtableAPI(object):
         while True:
             rows, offset = self.list_rows(table_name, offset)
             all_rows.extend(rows)
-            print(
-                '[Info] Got [ %s ] rows in Airtable <%s>' % (len(all_rows), table_name))
+            logger.info('Got %d rows from Airtable "%s"', len(all_rows), table_name)
             if not offset:
                 break
             time.sleep(0.5)
@@ -593,7 +596,7 @@ class AirtableConvertor(object):
                 seatable_column_type = COLUMN_MAPPING.get(column_type)
 
                 if seatable_column_type is None:
-                    print(f'[WARNING]: Unsupported column type {column_type} (table "{table["name"]}", column "{column_name}")')
+                    logger.warning('Column type %s (table "%s", column "%s") is not supported. This column needs to be manually created.', column_type, table['name'], column_name)
                     # TODO: Remove continue statement
                     continue
 
@@ -608,7 +611,7 @@ class AirtableConvertor(object):
                     other_table_name = self.link_map.get(table['name'], {}).get(column_name)
 
                     if other_table_name is None:
-                        print(f'[WARNING] Could not find column "{column_name}" inside table "{table["name"]}" in link map')
+                        logger.warning('Could not find column "%s" inside table "%s" in link map', column_name, table['name'])
                         continue
 
                     column_data = {'other_table': other_table_name}
@@ -659,7 +662,7 @@ class AirtableConvertor(object):
         return color
 
     def convert_tables(self):
-        print('[Info] Convert tables')
+        logger.info('Start converting tables...')
         self.get_table_map()
         for table_name in self.table_names:
             table = self.table_map.get(table_name)
@@ -684,13 +687,12 @@ class AirtableConvertor(object):
                     else:
                         columns.append(item)
                 self.add_table(table_name, columns)
-                print(
-                    '[Info] Added table [ %s ] with %s columns' % (table_name, len(columns)))
-        print('[Info] Success\n')
+                logger.info('Added table "%s" with %d columns', table_name, len(columns))
+        logger.info('Successfully converted tables')
         time.sleep(1)
 
     def convert_columns(self):
-        print('[Info] Convert columns')
+        logger.info('Start converting columns...')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_columns = self.airtable_column_map[table_name]
@@ -701,13 +703,12 @@ class AirtableConvertor(object):
                 if not exists_column:
                     self.add_column(
                         table_name, column_name, column['type'], column['data'])
-                    print(
-                        '[Info] Added column [ %s ] to table <%s>' % (column['name'], table_name))
-        print('[Info] Success\n')
+                    logger.info('Added column "%s" to table "%s"', column['name'], table_name)
+        logger.info('Successfully converted columns')
         time.sleep(1)
 
     def convert_rows(self, is_demo=False):
-        print('[Info] Convert %s rows' % ('demo' if is_demo else ''))
+        logger.info('Start converting rows%s...', ' (demo)' if is_demo else '')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_rows = self.airtable_row_map[table_name]
@@ -716,13 +717,13 @@ class AirtableConvertor(object):
             columns = self.column_map[table_name]
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
-        print('[Info] Success\n')
+        logger.info('Successfully converted rows')
         time.sleep(1)
 
     def convert_links(self, is_demo=False):
         if not self.link_map:
             return
-        print('[Info] Convert %s links' % ('demo' if is_demo else ''))
+        logger.info('Starting converting links%s...', ' (demo)' if is_demo else '')
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
             table = self.table_map[table_name]
@@ -734,17 +735,17 @@ class AirtableConvertor(object):
                 links = self.links_convertor.convert(
                     column_name, link_data, airtable_rows)
                 self.batch_append_links(table_name, links)
-        print('[Info] Success\n')
+        logger.info('Successfully converted links')
         time.sleep(1)
 
     def delete_demo_rows(self):
-        print('[Info] Delete demo rows')
+        logger.info('Deleting demo rows...')
         for table_name in self.table_names:
             rows = self.list_rows(table_name)
             if rows:
                 row_ids = [row['_id'] for row in rows]
                 self.batch_delete_rows(table_name, row_ids)
-        print('[Info] Success\n')
+        logger.info('Successfully deleted demo rows')
         time.sleep(1)
 
     def get_first_column_map(self):
@@ -767,7 +768,7 @@ class AirtableConvertor(object):
         return self.link_map
 
     def get_airtable_row_map(self, is_demo=False):
-        print('[Info] List Airtable %s rows' % ('demo' if is_demo else ''))
+        logger.info('Start listing Airtable rows%s...', ' (demo)' if is_demo else '')
         self.airtable_row_map = {}
         for table_name in self.table_names:
             if is_demo:
@@ -775,7 +776,7 @@ class AirtableConvertor(object):
             else:
                 rows = self.airtable_api.list_all_rows(table_name)
             self.airtable_row_map[table_name] = rows
-        print('[Info] Success\n')
+        logger.info('Successfully retrieved rows from Airtable')
         return self.airtable_row_map
 
     def get_table_map(self):
@@ -834,8 +835,7 @@ class AirtableConvertor(object):
             if not row_split:
                 break
             self.base.batch_append_rows(table_name, row_split)
-            print(
-                '[Info] Appended [ %s ] rows to table <%s>' % (len(row_split), table_name))
+            logger.info('Appended %d rows to table "%s"', len(row_split), table_name)
             time.sleep(0.5)
 
     def batch_delete_rows(self, table_name, row_ids):
@@ -846,8 +846,7 @@ class AirtableConvertor(object):
             if not row_id_split:
                 break
             self.base.batch_delete_rows(table_name, row_id_split)
-            print(
-                '[Info] Deleted [ %s ] rows in table <%s>' % (len(row_id_split), table_name))
+            logger.info('Deleted %d rows from table "%s"', len(row_id_split), table_name)
             time.sleep(0.5)
 
     def batch_append_links(self, table_name, links):
@@ -866,6 +865,5 @@ class AirtableConvertor(object):
                 row_id: other_rows_ids_map[row_id] for row_id in row_id_split}
             self.base.batch_update_links(
                 link_id, table_id, other_table_id, row_id_split, other_rows_ids_map_split)
-            print(
-                '[Info] Added [ %s ] Links to table <%s>' % (len(row_id_split), table_name))
+            logger.info('Added %d links to table "%s"', len(row_id_split), table_name)
             time.sleep(0.5)
