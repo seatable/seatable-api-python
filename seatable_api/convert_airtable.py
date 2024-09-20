@@ -492,7 +492,7 @@ class AirtableAPI(object):
 
 class AirtableConvertor(object):
 
-    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[], excluded_column_types=[]):
+    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[], excluded_column_types=[], excluded_columns=[]):
         """
         airtable_api_key: str
         airtable_base_id: str
@@ -500,6 +500,7 @@ class AirtableConvertor(object):
         table_names: list[str], eg: ['table_name1', 'table_name2']
         links: list[tuple], eg: [('table_name', 'column_name', 'other_table_name')]
         excluded_column_types: list[ColumnTypes], e.g. [ColumnTypes.FORMULA, ColumnTypes.LINK_FORMULA]
+        excluded_columns: list[tuple[str, str]], e.g. [('Table1', 'Column1'), ('Table2', 'Column5')]
         """
         self.airtable_api = AirtableAPI(airtable_api_key, airtable_base_id)
         self.base = base
@@ -507,6 +508,7 @@ class AirtableConvertor(object):
         self.first_columns = first_columns
         self.links = links
         self.excluded_column_types = excluded_column_types
+        self.excluded_columns = excluded_columns
         self.columns_parser = ColumnsParser()
         self.files_convertor = FilesConvertor(airtable_api_key, base)
         self.rows_convertor = RowsConvertor(self.files_convertor)
@@ -714,6 +716,12 @@ class AirtableConvertor(object):
 
             # Remove excluded column types
             columns = [c for c in columns if ColumnTypes(c['type']) not in self.excluded_column_types]
+
+            # Remove excluded columns
+            columns = [
+                column for column in columns
+                if (table_name, column['name']) not in self.excluded_columns
+            ]
 
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
