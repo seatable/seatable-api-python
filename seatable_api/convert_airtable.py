@@ -102,9 +102,8 @@ class FilesConvertor(object):
 
 class RowsConvertor(object):
 
-    def __init__(self, files_convertor, excluded_column_types=[]):
+    def __init__(self, files_convertor):
         self.files_convertor = files_convertor
-        self.excluded_column_types = excluded_column_types
 
     def convert(self, columns, airtable_rows):
         rows = self.gen_rows(columns, airtable_rows)
@@ -231,9 +230,6 @@ class RowsConvertor(object):
             for column in columns:
                 column_name = column['name']
                 column_type = ColumnTypes(column['type'])
-
-                if column_type in self.excluded_column_types:
-                    continue
 
                 value = row.get(column_name)
                 if value is None:
@@ -513,7 +509,7 @@ class AirtableConvertor(object):
         self.excluded_column_types = excluded_column_types
         self.columns_parser = ColumnsParser()
         self.files_convertor = FilesConvertor(airtable_api_key, base)
-        self.rows_convertor = RowsConvertor(self.files_convertor, self.excluded_column_types)
+        self.rows_convertor = RowsConvertor(self.files_convertor)
         self.links_convertor = LinksConvertor()
         self.get_first_column_map()
         self.get_link_map()
@@ -715,6 +711,10 @@ class AirtableConvertor(object):
             if is_demo:
                 airtable_rows = airtable_rows[:10]
             columns = self.column_map[table_name]
+
+            # Remove excluded column types
+            columns = [c for c in columns if ColumnTypes(c['type']) not in self.excluded_column_types]
+
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
         logger.info('Successfully converted rows')
