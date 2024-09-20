@@ -602,8 +602,6 @@ class AirtableConvertor(object):
                 elif seatable_column_type == ColumnTypes.NUMBER:
                     column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
                 elif seatable_column_type == ColumnTypes.LINK:
-                    # TODO: Read from link map
-                    # column_data = {'other_table': ''}
                     other_table_name = self.link_map.get(table['name'], {}).get(column_name)
 
                     if other_table_name is None:
@@ -611,7 +609,6 @@ class AirtableConvertor(object):
                         continue
 
                     column_data = {'other_table': other_table_name}
-                # TODO: single-select
                 elif seatable_column_type in [ColumnTypes.SINGLE_SELECT, ColumnTypes.MULTIPLE_SELECT]:
                     column_data = {
                         'options': self.get_select_options(field['options']['choices']),
@@ -671,6 +668,8 @@ class AirtableConvertor(object):
                 columns = []
                 for column in airtable_columns:
                     if column['type'] == ColumnTypes.LINK:
+                        # Skip link columns for now
+                        # They will be inserted after all the other columns (in convert_columns())
                         continue
                     item = {
                         'column_name': column['name'],
