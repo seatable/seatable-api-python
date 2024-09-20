@@ -598,7 +598,7 @@ class AirtableConvertor(object):
 
                 # Handle special cases
                 if seatable_column_type == ColumnTypes.DATE:
-                    column_data = {'format': 'YYYY-MM-DD'}
+                    column_data = {'format': 'YYYY-MM-DD HH:mm'}
                 elif seatable_column_type == ColumnTypes.NUMBER:
                     if column_type == 'number':
                         column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
