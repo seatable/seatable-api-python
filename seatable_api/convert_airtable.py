@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import sys
 import time
@@ -451,9 +452,9 @@ class AirtableAPI(object):
 
     def list_rows(self, table_name, offset=''):
         headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
-        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + table_name
+        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + table_name + '?recordMetadata=commentCount'
         if offset:
-            url = url + '?offset=' + offset
+            url = url + '+offset=' + offset
         response = requests.get(url, headers=headers, timeout=60)
         if response.status_code >= 400:
             raise ConnectionError(response.status_code, response.text)
@@ -464,6 +465,10 @@ class AirtableAPI(object):
         for record in records:
             row = record['fields']
             row['_id'] = record['id']
+
+            # Store number of comments inside helper column
+            row['airtable_comment_count'] = record['commentCount']
+
             rows.append(row)
         return rows, offset
 
@@ -488,6 +493,17 @@ class AirtableAPI(object):
             raise ConnectionError(response.status_code, response.text)
 
         return response.json().get('tables', [])
+
+    def list_comments(self, table_name, record_id):
+        url = f'{AIRTABLE_API_URL}{self.airtable_base_id}/{table_name}/{record_id}/comments'
+        headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
+
+        response = requests.get(url, headers=headers, timeout=60)
+        if response.status_code >= 400:
+            raise ConnectionError(response.status_code, response.text)
+
+        # TODO: Handle pagination (necessary if a single row has more than 100 comments)
+        return response.json().get('comments', [])
 
 
 class AirtableConvertor(object):
@@ -532,6 +548,53 @@ class AirtableConvertor(object):
         self.get_airtable_row_map()
         self.convert_rows()
         self.convert_links()
+
+    def convert_comments(self):
+        self.get_table_map()
+
+        for table_name in self.table_names:
+            table = self.table_map.get(table_name)
+            if not table:
+                continue
+
+            table_id = table['_id']
+
+            # TODO: Handle rows > 1000 case (needs offset + limit)
+            rows = self.base.query(f'SELECT _id FROM `{table_name}` WHERE airtable_comment_count > 0')
+
+            if len(rows) == 0:
+                logger.info('Skipping table "%s" since it does not contain any rows where airtable_comment_count > 0', table_name)
+                continue
+
+            logger.info('Migrating comments for table "%s" (%d row(s) with comments found)', table_name, len(rows))
+
+            for row in rows:
+                comments = self.airtable_api.list_comments(table_name, row['_id'])
+
+                for comment in comments:
+                    comment_text = f'[{comment["author"]["name"]}; {comment["createdTime"]}] {comment["text"]}'
+                    self.create_row_comment(table_id, row['_id'], comment_text)
+
+        logger.info('Successfully migrated comments')
+
+    def create_row_comment(self, table_id, row_id, comment):
+        url = f'{self.base.server_url}/api/v2.1/dtables/{self.base.dtable_uuid}/comments/'
+        body = {
+            'table_id': table_id,
+            'row_id': row_id,
+            'comment': comment,
+        }
+        headers = {
+            # TODO
+            'Authorization': f'Bearer {os.environ.get("SEATABLE_COMMENTS_TOKEN")}',
+            'Content-Type': 'application/json',
+        }
+
+        # TODO: Error handling
+        response = requests.post(url, json=body, headers=headers)
+
+        if response.status_code >= 400:
+            raise ConnectionError(response.status_code, response.text)
 
     def parse_airtable_schema(self, schema):
         self.airtable_column_map = {}
@@ -640,6 +703,9 @@ class AirtableConvertor(object):
                 }
 
                 columns.append(column)
+
+            # Add helper columns
+            columns.append({'name': 'airtable_comment_count', 'type': ColumnTypes.NUMBER, 'data': {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}})
 
             self.airtable_column_map[table['name']] = columns
 
