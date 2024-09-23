@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import sys
@@ -509,6 +510,7 @@ class AirtableConvertor(object):
         self.links = links
         self.excluded_column_types = excluded_column_types
         self.excluded_columns = excluded_columns
+        self.manually_migrated_columns = []
         self.columns_parser = ColumnsParser()
         self.files_convertor = FilesConvertor(airtable_api_key, base)
         self.rows_convertor = RowsConvertor(self.files_convertor)
@@ -523,6 +525,8 @@ class AirtableConvertor(object):
         self.parse_airtable_schema(schema)
 
         self.convert_tables()
+        self.add_helper_table()
+
         self.convert_columns()
         self.convert_rows(is_demo=True)
         self.convert_links(is_demo=True)
@@ -593,6 +597,7 @@ class AirtableConvertor(object):
 
                 if seatable_column_type is None:
                     logger.warning('Column type %s (table "%s", column "%s") is not supported. This column needs to be manually created.', column_type, table['name'], column_name)
+                    self.manually_migrated_columns.append({'Column': column_name, 'Table': table['name'], 'Type': column_type, 'Metadata': json.dumps(field.get('options', ''))})
                     # TODO: Remove continue statement
                     continue
 
@@ -696,6 +701,22 @@ class AirtableConvertor(object):
                 logger.info('Added table "%s" with %d columns', table_name, len(columns))
         logger.info('Successfully converted tables')
         time.sleep(1)
+
+    def add_helper_table(self):
+        table_name = 'Columns to be migrated manually'
+
+        # Add column which contains information which columns need to be manually migrated
+        columns = [
+            {'column_name': 'Column', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Table', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Type', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Metadata', 'column_type': ColumnTypes.LONG_TEXT.value},
+            {'column_name': 'Completed', 'column_type': ColumnTypes.CHECKBOX.value},
+        ]
+
+        self.add_table(table_name, columns)
+
+        self.batch_append_rows(table_name, self.manually_migrated_columns)
 
     def convert_columns(self):
         logger.info('Start converting columns...')
