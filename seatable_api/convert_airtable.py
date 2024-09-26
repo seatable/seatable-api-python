@@ -474,7 +474,7 @@ class AirtableAPI(object):
         while True:
             rows, offset = self.list_rows(table_name, offset)
             all_rows.extend(rows)
-            logger.info('Got %d rows from Airtable "%s"', len(all_rows), table_name)
+            logger.info('Retrieved %d rows from table "%s"', len(all_rows), table_name)
             if not offset:
                 break
             # time.sleep(0.5)
@@ -596,7 +596,7 @@ class AirtableConvertor(object):
                 seatable_column_type = COLUMN_MAPPING.get(column_type)
 
                 if seatable_column_type is None:
-                    logger.warning('Column type %s (table "%s", column "%s") is not supported. This column needs to be manually created.', column_type, table['name'], column_name)
+                    logger.warning('Column "%s" (table "%s") is of type "%s"; column must be manually added', column_name, table['name'], column_type)
                     self.manually_migrated_columns.append({'Column': column_name, 'Table': table['name'], 'Type': column_type, 'Metadata': json.dumps(field.get('options', ''))})
                     # TODO: Remove continue statement
                     continue
@@ -617,7 +617,7 @@ class AirtableConvertor(object):
                     other_table_name = self.link_map.get(table['name'], {}).get(column_name)
 
                     if other_table_name is None:
-                        logger.warning('Could not find column "%s" inside table "%s" in link map', column_name, table['name'])
+                        logger.warning('Column "%s" (table "%s") was not found in link map', column_name, table['name'])
                         continue
 
                     column_data = {'other_table': other_table_name}
@@ -671,7 +671,7 @@ class AirtableConvertor(object):
         return color
 
     def convert_tables(self):
-        logger.info('Start converting tables...')
+        logger.info('Start adding tables and columns in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             table = self.table_map.get(table_name)
@@ -699,7 +699,7 @@ class AirtableConvertor(object):
                         columns.append(item)
                 self.add_table(table_name, columns)
                 logger.info('Added table "%s" with %d columns', table_name, len(columns))
-        logger.info('Successfully converted tables')
+        logger.info('Tables and columns added in SeaTable base')
         time.sleep(1)
 
     def add_helper_table(self):
@@ -715,11 +715,12 @@ class AirtableConvertor(object):
         ]
 
         self.add_table(table_name, columns)
+        logger.info('Table "%s" added', table_name)
 
         self.batch_append_rows(table_name, self.manually_migrated_columns)
 
     def convert_columns(self):
-        logger.info('Start converting columns...')
+        logger.info('Start adding link columns in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_columns = self.airtable_column_map[table_name]
@@ -731,11 +732,11 @@ class AirtableConvertor(object):
                     self.add_column(
                         table_name, column_name, column['type'], column['data'])
                     logger.info('Added column "%s" to table "%s"', column['name'], table_name)
-        logger.info('Successfully converted columns')
+        logger.info('Link columns added in SeaTable base')
         time.sleep(1)
 
     def convert_rows(self, is_demo=False):
-        logger.info('Start converting rows%s...', ' (demo)' if is_demo else '')
+        logger.info('Start appending rows in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_rows = self.airtable_row_map[table_name]
@@ -754,13 +755,13 @@ class AirtableConvertor(object):
 
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
-        logger.info('Successfully converted rows')
+        logger.info('Rows appended in SeaTable base')
         time.sleep(1)
 
     def convert_links(self, is_demo=False):
         if not self.link_map:
             return
-        logger.info('Starting converting links%s...', ' (demo)' if is_demo else '')
+        logger.info('Start adding links between records in SeaTable base')
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
             table = self.table_map[table_name]
@@ -772,17 +773,17 @@ class AirtableConvertor(object):
                 links = self.links_convertor.convert(
                     column_name, link_data, airtable_rows)
                 self.batch_append_links(table_name, links)
-        logger.info('Successfully converted links')
+        logger.info('Links added between records in SeaTable base')
         time.sleep(1)
 
     def delete_demo_rows(self):
-        logger.info('Deleting demo rows...')
+        logger.info('Start deleting demo rows')
         for table_name in self.table_names:
             rows = self.list_rows(table_name)
             if rows:
                 row_ids = [row['_id'] for row in rows]
                 self.batch_delete_rows(table_name, row_ids)
-        logger.info('Successfully deleted demo rows')
+        logger.info('Demo rows deleted from SeaTable base')
         time.sleep(1)
 
     def get_first_column_map(self):
@@ -805,7 +806,11 @@ class AirtableConvertor(object):
         return self.link_map
 
     def get_airtable_row_map(self, is_demo=False):
-        logger.info('Start listing Airtable rows%s...', ' (demo)' if is_demo else '')
+        if is_demo:
+            logger.info('Start retrieving demo data from Airtable')
+        else:
+            logger.info('Start retrieving data from Airtable')
+
         self.airtable_row_map = {}
         for table_name in self.table_names:
             if is_demo:
@@ -813,7 +818,12 @@ class AirtableConvertor(object):
             else:
                 rows = self.airtable_api.list_all_rows(table_name)
             self.airtable_row_map[table_name] = rows
-        logger.info('Successfully retrieved rows from Airtable')
+
+        if is_demo:
+            logger.info('Demo data retrieved from Airtable')
+        else:
+            logger.info('Data retrieved from Airtable')
+
         return self.airtable_row_map
 
     def get_table_map(self):
