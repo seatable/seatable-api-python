@@ -5,6 +5,7 @@ import sys
 import time
 import random
 import requests
+import urllib
 from datetime import datetime
 
 from .constants import ColumnTypes
@@ -452,7 +453,8 @@ class AirtableAPI(object):
 
     def list_rows(self, table_name, offset=''):
         headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
-        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + table_name
+        # Table names must be encoded since they may contain slashes or other special characters
+        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + urllib.parse.quote(table_name, safe='')
         if offset:
             url = url + '?offset=' + offset
         response = requests.get(url, headers=headers, timeout=60)
