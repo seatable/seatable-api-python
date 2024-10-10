@@ -1,7 +1,11 @@
+import json
+import logging
 import re
+import sys
 import time
 import random
 import requests
+import urllib
 from datetime import datetime
 
 from .constants import ColumnTypes
@@ -23,6 +27,8 @@ ColumnTypes.BARCODE = 'barcode'
 FILE = 'file'
 IMAGE = 'image'
 
+logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S', stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger()
 
 class LinksConvertor(object):
 
@@ -42,7 +48,7 @@ class LinksConvertor(object):
                 row_id_list.append(row_id)
                 other_rows_ids_map[row_id] = link
         except Exception as e:
-            print('[Warning] gen links error:', e)
+            logger.exception('Error during link generation')
         links = {
             'link_id': link_data['link_id'],
             'table_id': link_data['table_id'],
@@ -75,7 +81,7 @@ class FilesConvertor(object):
                 name=name, content=content, file_type=file_type)
             return file_info
         except Exception as e:
-            print('[Warning] upload file error:', e)
+            logger.exception('Could not upload file')
             return None
 
     def batch_upload_files(self, value):
@@ -215,7 +221,7 @@ class RowsConvertor(object):
             else:  # DEFAULT
                 cell_data = str(value)
         except Exception as e:
-            print('[Warning] gen cell data error:', e)
+            logger.exception('Could not generate cell data')
             cell_data = str(value)
         return cell_data
 
@@ -226,6 +232,7 @@ class RowsConvertor(object):
             for column in columns:
                 column_name = column['name']
                 column_type = ColumnTypes(column['type'])
+
                 value = row.get(column_name)
                 if value is None:
                     continue
@@ -446,7 +453,8 @@ class AirtableAPI(object):
 
     def list_rows(self, table_name, offset=''):
         headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
-        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + table_name
+        # Table names must be encoded since they may contain slashes or other special characters
+        url = AIRTABLE_API_URL + self.airtable_base_id + '/' + urllib.parse.quote(table_name, safe='')
         if offset:
             url = url + '?offset=' + offset
         response = requests.get(url, headers=headers, timeout=60)
@@ -468,29 +476,43 @@ class AirtableAPI(object):
         while True:
             rows, offset = self.list_rows(table_name, offset)
             all_rows.extend(rows)
-            print(
-                '[Info] Got [ %s ] rows in Airtable <%s>' % (len(all_rows), table_name))
+            logger.info('Retrieved %d rows from table "%s"', len(all_rows), table_name)
             if not offset:
                 break
-            time.sleep(0.5)
+            # time.sleep(0.5)
         return all_rows
+
+    def get_schema(self):
+        url = f'{AIRTABLE_API_URL}meta/bases/{self.airtable_base_id}/tables'
+        headers = {'Authorization': 'Bearer ' + self.airtable_api_key}
+
+        response = requests.get(url, headers=headers, timeout=60)
+        if response.status_code >= 400:
+            raise ConnectionError(response.status_code, response.text)
+
+        return response.json().get('tables', [])
 
 
 class AirtableConvertor(object):
 
-    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[]):
+    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[], excluded_column_types=[], excluded_columns=[]):
         """
         airtable_api_key: str
         airtable_base_id: str
         base: SeaTable Base
         table_names: list[str], eg: ['table_name1', 'table_name2']
         links: list[tuple], eg: [('table_name', 'column_name', 'other_table_name')]
+        excluded_column_types: list[ColumnTypes], e.g. [ColumnTypes.FORMULA, ColumnTypes.LINK_FORMULA]
+        excluded_columns: list[tuple[str, str]], e.g. [('Table1', 'Column1'), ('Table2', 'Column5')]
         """
         self.airtable_api = AirtableAPI(airtable_api_key, airtable_base_id)
         self.base = base
         self.table_names = table_names
         self.first_columns = first_columns
         self.links = links
+        self.excluded_column_types = excluded_column_types
+        self.excluded_columns = excluded_columns
+        self.manually_migrated_columns = []
         self.columns_parser = ColumnsParser()
         self.files_convertor = FilesConvertor(airtable_api_key, base)
         self.rows_convertor = RowsConvertor(self.files_convertor)
@@ -500,8 +522,13 @@ class AirtableConvertor(object):
 
     def convert_metadata(self):
         self.get_airtable_row_map(is_demo=True)
-        self.get_airtable_column_map()
+
+        schema = self.airtable_api.get_schema()
+        self.parse_airtable_schema(schema)
+
         self.convert_tables()
+        self.add_helper_table()
+
         self.convert_columns()
         self.convert_rows(is_demo=True)
         self.convert_links(is_demo=True)
@@ -509,12 +536,144 @@ class AirtableConvertor(object):
     def convert_data(self):
         self.delete_demo_rows()
         self.get_airtable_row_map()
-        self.convert_select_columns()
         self.convert_rows()
         self.convert_links()
 
+    def parse_airtable_schema(self, schema):
+        self.airtable_column_map = {}
+
+        # AirTable -> SeaTable
+        COLUMN_MAPPING = {
+            # From https://airtable.com/developers/web/api/model/field-type
+            # Note: Commented out column types are not supported and must be manually created
+            "singleLineText": ColumnTypes.TEXT,
+            "email": ColumnTypes.EMAIL,
+            "url": ColumnTypes.URL,
+            "multilineText": ColumnTypes.LONG_TEXT,
+            "number": ColumnTypes.NUMBER,
+            "percent": ColumnTypes.NUMBER,
+            "currency": ColumnTypes.NUMBER,
+            "singleSelect": ColumnTypes.SINGLE_SELECT,
+            "multipleSelects": ColumnTypes.MULTIPLE_SELECT,
+            "singleCollaborator": ColumnTypes.TEXT,
+            "multipleCollaborators": ColumnTypes.TEXT,
+            "multipleRecordLinks": ColumnTypes.LINK,
+            "date": ColumnTypes.DATE,
+            "dateTime": ColumnTypes.DATE,
+            # SeaTable does not support phone number columns
+            "phoneNumber": ColumnTypes.TEXT,
+            "multipleAttachments": ColumnTypes.FILE,
+            "checkbox": ColumnTypes.CHECKBOX,
+            "formula": ColumnTypes.FORMULA,
+            "createdTime": ColumnTypes.DATE,
+            #"rollup": '',
+            #"count": '',
+            #"lookup": '',
+            #"multipleLookupValues": '',
+            "autoNumber": ColumnTypes.TEXT,
+            # SeaTable does not support barcode columns
+            "barcode": ColumnTypes.TEXT,
+            "rating": ColumnTypes.RATE,
+            "richText": ColumnTypes.LONG_TEXT,
+            "duration": ColumnTypes.DURATION,
+            "lastModifiedTime": ColumnTypes.DATE,
+            # "button": ColumnTypes.BUTTON,
+            "createdBy": ColumnTypes.TEXT,
+            "lastModifiedBy": ColumnTypes.TEXT,
+            #"externalSyncSource": '',
+            #"aiText": '',
+        }
+
+        for table in schema:
+            columns = []
+
+            for field in table['fields']:
+                column_name = field['name']
+                column_type = field['type']
+
+                # TODO: Check if this is necessary
+                if column_name == '_id':
+                    continue
+
+                seatable_column_type = COLUMN_MAPPING.get(column_type)
+
+                if seatable_column_type is None:
+                    logger.warning('Column "%s" (table "%s") is of type "%s"; column must be manually added', column_name, table['name'], column_type)
+                    self.manually_migrated_columns.append({'Column': column_name, 'Table': table['name'], 'Type': column_type, 'Metadata': json.dumps(field.get('options', ''))})
+                    # TODO: Remove continue statement
+                    continue
+
+                # Handle special cases
+                if seatable_column_type == ColumnTypes.DATE:
+                    column_data = {'format': 'YYYY-MM-DD HH:mm'}
+                elif seatable_column_type == ColumnTypes.NUMBER:
+                    if column_type == 'number':
+                        column_data = {'format': 'number', 'decimal': 'dot', 'thousands': 'no'}
+                    elif column_type == 'percent':
+                        column_data = {'format': 'percent', 'decimal': 'dot', 'thousands': 'no'}
+                    elif column_type == 'currency':
+                        column_data = {'format': 'dollar', 'decimal': 'dot', 'thousands': 'no'}
+                    else:
+                        column_data = {}
+                elif seatable_column_type == ColumnTypes.LINK:
+                    other_table_name = self.link_map.get(table['name'], {}).get(column_name)
+
+                    if other_table_name is None:
+                        logger.warning('Column "%s" (table "%s") was not found in link map', column_name, table['name'])
+                        continue
+
+                    column_data = {'other_table': other_table_name}
+                elif seatable_column_type in [ColumnTypes.SINGLE_SELECT, ColumnTypes.MULTIPLE_SELECT]:
+                    column_data = {
+                        'options': self.get_select_options(field['options']['choices']),
+                    }
+                elif seatable_column_type == ColumnTypes.DURATION:
+                    column_data = {
+                        'format': 'duration',
+                        # TODO: Read actual format from AirTable schema
+                        'duration_format': 'h:mm:ss',
+                    }
+                elif seatable_column_type == ColumnTypes.FORMULA:
+                    column_data = {'formula': '"Formula to be defined"'}
+                elif seatable_column_type == ColumnTypes.RATE:
+                    column_data = {'rate_max_number': field['options']['max']}
+                else:
+                    column_data = {}
+
+                column = {
+                    'name': column_name,
+                    'type': seatable_column_type,
+                    'data': column_data,
+                }
+
+                columns.append(column)
+
+            self.airtable_column_map[table['name']] = columns
+
+    def get_select_options(self, options):
+        return [{
+            'name': value['name'],
+            'id': self.random_num_id(),
+            'color': self.random_color(),
+            'textColor': TEXT_COLOR,
+        } for value in options]
+
+    def random_num_id(self):
+        num_str = '0123456789'
+        num = ''
+        for i in range(6):
+            num += random.choice(num_str)
+        return num
+
+    def random_color(self):
+        color_str = '0123456789ABCDEF'
+        color = '#'
+        for i in range(6):
+            color += random.choice(color_str)
+        return color
+
     def convert_tables(self):
-        print('[Info] Convert tables')
+        logger.info('Start adding tables and columns in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             table = self.table_map.get(table_name)
@@ -525,6 +684,8 @@ class AirtableConvertor(object):
                 columns = []
                 for column in airtable_columns:
                     if column['type'] == ColumnTypes.LINK:
+                        # Skip link columns for now
+                        # They will be inserted after all the other columns (in convert_columns())
                         continue
                     item = {
                         'column_name': column['name'],
@@ -539,13 +700,29 @@ class AirtableConvertor(object):
                     else:
                         columns.append(item)
                 self.add_table(table_name, columns)
-                print(
-                    '[Info] Added table [ %s ] with %s columns' % (table_name, len(columns)))
-        print('[Info] Success\n')
+                logger.info('Added table "%s" with %d columns', table_name, len(columns))
+        logger.info('Tables and columns added in SeaTable base')
         time.sleep(1)
 
+    def add_helper_table(self):
+        table_name = 'Columns to be migrated manually'
+
+        # Add column which contains information which columns need to be manually migrated
+        columns = [
+            {'column_name': 'Column', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Table', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Type', 'column_type': ColumnTypes.TEXT.value},
+            {'column_name': 'Metadata', 'column_type': ColumnTypes.LONG_TEXT.value},
+            {'column_name': 'Completed', 'column_type': ColumnTypes.CHECKBOX.value},
+        ]
+
+        self.add_table(table_name, columns)
+        logger.info('Table "%s" added', table_name)
+
+        self.batch_append_rows(table_name, self.manually_migrated_columns)
+
     def convert_columns(self):
-        print('[Info] Convert columns')
+        logger.info('Start adding link columns in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_columns = self.airtable_column_map[table_name]
@@ -556,28 +733,37 @@ class AirtableConvertor(object):
                 if not exists_column:
                     self.add_column(
                         table_name, column_name, column['type'], column['data'])
-                    print(
-                        '[Info] Added column [ %s ] to table <%s>' % (column['name'], table_name))
-        print('[Info] Success\n')
+                    logger.info('Added column "%s" to table "%s"', column['name'], table_name)
+        logger.info('Link columns added in SeaTable base')
         time.sleep(1)
 
     def convert_rows(self, is_demo=False):
-        print('[Info] Convert %s rows' % ('demo' if is_demo else ''))
+        logger.info('Start appending rows in SeaTable base')
         self.get_table_map()
         for table_name in self.table_names:
             airtable_rows = self.airtable_row_map[table_name]
             if is_demo:
                 airtable_rows = airtable_rows[:10]
             columns = self.column_map[table_name]
+
+            # Remove excluded column types
+            columns = [c for c in columns if ColumnTypes(c['type']) not in self.excluded_column_types]
+
+            # Remove excluded columns
+            columns = [
+                column for column in columns
+                if (table_name, column['name']) not in self.excluded_columns
+            ]
+
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
-        print('[Info] Success\n')
+        logger.info('Rows appended in SeaTable base')
         time.sleep(1)
 
     def convert_links(self, is_demo=False):
         if not self.link_map:
             return
-        print('[Info] Convert %s links' % ('demo' if is_demo else ''))
+        logger.info('Start adding links between records in SeaTable base')
         self.get_table_map()
         for table_name, column_names in self.link_map.items():
             table = self.table_map[table_name]
@@ -589,34 +775,17 @@ class AirtableConvertor(object):
                 links = self.links_convertor.convert(
                     column_name, link_data, airtable_rows)
                 self.batch_append_links(table_name, links)
-        print('[Info] Success\n')
+        logger.info('Links added between records in SeaTable base')
         time.sleep(1)
 
     def delete_demo_rows(self):
-        print('[Info] Delete demo rows')
+        logger.info('Start deleting demo rows')
         for table_name in self.table_names:
             rows = self.list_rows(table_name)
             if rows:
                 row_ids = [row['_id'] for row in rows]
                 self.batch_delete_rows(table_name, row_ids)
-        print('[Info] Success\n')
-        time.sleep(1)
-
-    def convert_select_columns(self):
-        print('[Info] Convert select columns')
-        self.get_table_map()
-        for table_name in self.table_names:
-            columns = self.table_map[table_name]
-            airtable_rows = self.airtable_row_map[table_name]
-            select_columns = self.columns_parser.parse_select(
-                columns, airtable_rows)
-            for column in select_columns:
-                column_name = column['name']
-                options = column['options']
-                self.add_column_options(table_name, column_name, options)
-                print(
-                    '[Info] Added options to column [ %s ] in table <%s>' % (column_name, table_name))
-        print('[Info] Success\n')
+        logger.info('Demo rows deleted from SeaTable base')
         time.sleep(1)
 
     def get_first_column_map(self):
@@ -639,7 +808,11 @@ class AirtableConvertor(object):
         return self.link_map
 
     def get_airtable_row_map(self, is_demo=False):
-        print('[Info] List Airtable %s rows' % ('demo' if is_demo else ''))
+        if is_demo:
+            logger.info('Start retrieving demo data from Airtable')
+        else:
+            logger.info('Start retrieving data from Airtable')
+
         self.airtable_row_map = {}
         for table_name in self.table_names:
             if is_demo:
@@ -647,17 +820,13 @@ class AirtableConvertor(object):
             else:
                 rows = self.airtable_api.list_all_rows(table_name)
             self.airtable_row_map[table_name] = rows
-        print('[Info] Success\n')
-        return self.airtable_row_map
 
-    def get_airtable_column_map(self):
-        self.airtable_column_map = {}
-        for table_name in self.table_names:
-            airtable_rows = self.airtable_row_map[table_name]
-            columns = self.columns_parser.parse(
-                self.link_map, table_name, airtable_rows)
-            self.airtable_column_map[table_name] = columns
-        return self.airtable_column_map
+        if is_demo:
+            logger.info('Demo data retrieved from Airtable')
+        else:
+            logger.info('Data retrieved from Airtable')
+
+        return self.airtable_row_map
 
     def get_table_map(self):
         self.table_map = {}
@@ -715,8 +884,7 @@ class AirtableConvertor(object):
             if not row_split:
                 break
             self.base.batch_append_rows(table_name, row_split)
-            print(
-                '[Info] Appended [ %s ] rows to table <%s>' % (len(row_split), table_name))
+            logger.info('Appended %d rows to table "%s"', len(row_split), table_name)
             time.sleep(0.5)
 
     def batch_delete_rows(self, table_name, row_ids):
@@ -727,8 +895,7 @@ class AirtableConvertor(object):
             if not row_id_split:
                 break
             self.base.batch_delete_rows(table_name, row_id_split)
-            print(
-                '[Info] Deleted [ %s ] rows in table <%s>' % (len(row_id_split), table_name))
+            logger.info('Deleted %d rows from table "%s"', len(row_id_split), table_name)
             time.sleep(0.5)
 
     def batch_append_links(self, table_name, links):
@@ -747,6 +914,5 @@ class AirtableConvertor(object):
                 row_id: other_rows_ids_map[row_id] for row_id in row_id_split}
             self.base.batch_update_links(
                 link_id, table_id, other_table_id, row_id_split, other_rows_ids_map_split)
-            print(
-                '[Info] Added [ %s ] Links to table <%s>' % (len(row_id_split), table_name))
-            time.sleep(0.5)
+            logger.info('Added %d links to table "%s"', len(row_id_split), table_name)
+            # time.sleep(0.5)
