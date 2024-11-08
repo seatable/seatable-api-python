@@ -89,13 +89,16 @@ class SeaTableAPI(object):
             msg_sender = None
         return msg_sender
 
-    def auth(self, with_socket_io=False):
+    def auth(self, with_socket_io=False, as_user=None):
         """Auth to SeaTable
         """
         self.jwt_exp = datetime.now() + timedelta(days=3)
         url = self.server_url + '/api/v2.1/dtable/app-access-token/'
         headers = parse_headers(self.token)
-        response = requests.get(url, headers=headers, timeout=self.timeout)
+        params = {}
+        if as_user:
+            params['email'] = as_user
+        response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
 
         self.dtable_server_url = parse_server_url(data.get('dtable_server'))
