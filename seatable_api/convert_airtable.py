@@ -495,7 +495,7 @@ class AirtableAPI(object):
 
 class AirtableConvertor(object):
 
-    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, first_columns=[], links=[], excluded_column_types=[], excluded_columns=[]):
+    def __init__(self, airtable_api_key, airtable_base_id, base, table_names, links=[], excluded_column_types=[], excluded_columns=[]):
         """
         airtable_api_key: str
         airtable_base_id: str
@@ -508,7 +508,6 @@ class AirtableConvertor(object):
         self.airtable_api = AirtableAPI(airtable_api_key, airtable_base_id)
         self.base = base
         self.table_names = table_names
-        self.first_columns = first_columns
         self.links = links
         self.excluded_column_types = excluded_column_types
         self.excluded_columns = excluded_columns
@@ -517,7 +516,6 @@ class AirtableConvertor(object):
         self.files_convertor = FilesConvertor(airtable_api_key, base)
         self.rows_convertor = RowsConvertor(self.files_convertor)
         self.links_convertor = LinksConvertor()
-        self.get_first_column_map()
         self.get_link_map()
 
     def convert_metadata(self):
@@ -679,8 +677,7 @@ class AirtableConvertor(object):
             table = self.table_map.get(table_name)
             if not table:
                 airtable_columns = self.airtable_column_map[table_name]
-                first_column_name = self.first_column_map.get(table_name) or \
-                    airtable_columns[0]['name']
+                first_column_name = airtable_columns[0]['name']
                 columns = []
                 for column in airtable_columns:
                     if column['type'] == ColumnTypes.LINK:
@@ -787,14 +784,6 @@ class AirtableConvertor(object):
                 self.batch_delete_rows(table_name, row_ids)
         logger.info('Demo rows deleted from SeaTable base')
         time.sleep(1)
-
-    def get_first_column_map(self):
-        self.first_column_map = {}
-        for column in self.first_columns:
-            table_name = column[0]
-            column_name = column[1]
-            self.first_column_map[table_name] = column_name
-        return self.first_column_map
 
     def get_link_map(self):
         self.link_map = {}
