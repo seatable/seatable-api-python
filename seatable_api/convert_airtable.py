@@ -698,10 +698,11 @@ class AirtableConvertor(object):
                         columns.append(item)
                 self.add_table(table_name, columns)
                 logger.info('Added table "%s" with %d columns', table_name, len(columns))
-        logger.info('Tables and columns added in SeaTable base')
+        logger.info('Step completed: Tables and columns added in SeaTable base')
         time.sleep(1)
 
     def add_helper_table(self):
+        logger.info('Start compiling list of columns to be migrated manually')
         table_name = 'Columns to be migrated manually'
 
         # Add column which contains information which columns need to be manually migrated
@@ -714,7 +715,7 @@ class AirtableConvertor(object):
         ]
 
         self.add_table(table_name, columns)
-        logger.info('Table "%s" added', table_name)
+        logger.info('Added table "%s" with %d columns', table_name, len(columns))
 
         self.batch_append_rows(table_name, self.manually_migrated_columns)
 
@@ -731,7 +732,7 @@ class AirtableConvertor(object):
                     self.add_column(
                         table_name, column_name, column['type'], column['data'])
                     logger.info('Added column "%s" to table "%s"', column['name'], table_name)
-        logger.info('Link columns added in SeaTable base')
+        logger.info('Step completed: Link columns added in SeaTable base')
         time.sleep(1)
 
     def convert_rows(self, is_demo=False):
@@ -754,7 +755,7 @@ class AirtableConvertor(object):
 
             rows = self.rows_convertor.convert(columns, airtable_rows)
             self.batch_append_rows(table_name, rows)
-        logger.info('Rows appended in SeaTable base')
+        logger.info('Step completed: Rows appended in SeaTable base')
         time.sleep(1)
 
     def convert_links(self, is_demo=False):
@@ -772,7 +773,7 @@ class AirtableConvertor(object):
                 links = self.links_convertor.convert(
                     column_name, link_data, airtable_rows)
                 self.batch_append_links(table_name, links)
-        logger.info('Links added between records in SeaTable base')
+        logger.info('Step completed: Links added between records in SeaTable base')
         time.sleep(1)
 
     def delete_demo_rows(self):
@@ -811,9 +812,9 @@ class AirtableConvertor(object):
             self.airtable_row_map[table_name] = rows
 
         if is_demo:
-            logger.info('Demo data retrieved from Airtable')
+            logger.info('Step completed: Demo data retrieved from Airtable')
         else:
-            logger.info('Data retrieved from Airtable')
+            logger.info('Step completed: Data retrieved from Airtable')
 
         return self.airtable_row_map
 
