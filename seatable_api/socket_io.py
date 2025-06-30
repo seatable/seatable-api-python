@@ -9,6 +9,10 @@ from .constants import JOIN_ROOM, UPDATE_DTABLE, NEW_NOTIFICATION
 
 class SIO(socketio.Client):
 
+    def __init__(self, *args, **kwargs):
+        self.base = kwargs.pop('base')
+        super().__init__(*args, **kwargs)
+
     def _handle_disconnect(self, namespace):
         """io server disconnect"""
         self.logger.info('Engine.IO connection disconnected')
@@ -18,12 +22,16 @@ class SIO(socketio.Client):
         namespace = namespace or '/'
         self._trigger_event('io-disconnect', namespace=namespace)
 
+    def connect(self, *args, **kwargs):
+        kwargs['socketio_path'] = '/api-gateway/socket.io'
+        return super().connect(*args, **kwargs)
+
 
 class SocketIO(object):
 
     def __init__(self, base):
         self.base = base
-        self.sio = SIO(request_timeout=base.timeout)
+        self.sio = SIO(request_timeout=base.timeout, base=base)
 
     def __str__(self):
         return '<SeaTable SocketIO [ %s ]>' % self.base.dtable_name
