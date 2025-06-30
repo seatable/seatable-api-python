@@ -18,6 +18,10 @@ class SIO(socketio.Client):
         namespace = namespace or '/'
         self._trigger_event('io-disconnect', namespace=namespace)
 
+    def connect(self, *args, **kwargs):
+        kwargs['socketio_path'] = '/api-gateway/socket.io'
+        return super().connect(*args, **kwargs)
+
 
 class SocketIO(object):
 
