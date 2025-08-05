@@ -1003,23 +1003,22 @@ class SeaTableAPI(object):
             f.write(response.content)
 
     @check_auth
-    def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type=None, replace=False):
+    def upload_bytes_file(self, name, content: bytes, relative_path=None, file_type='file', replace=False):
         """
-        relative_path: relative path for upload, if None, default {file_type}s/{date of this month} eg: files/2020-09
         file_type: if relative is None, file type must in ['image', 'file'], default 'file'
         return: info dict of uploaded file
         """
+        if file_type not in ['image', 'file']:
+            raise Exception('relative or file_type invalid.')
+        
         upload_link_dict = self.get_file_upload_link()
+        if file_type == 'image':
+            relative_path = upload_link_dict['img_relative_path']
+        else:
+            relative_path = upload_link_dict['file_relative_path']
+        
         parent_dir = upload_link_dict['parent_path']
         upload_link = upload_link_dict['upload_link'] + '?ret-json=1'
-        if not relative_path:
-            if file_type and file_type not in ['image', 'file']:
-                raise Exception('relative or file_type invalid.')
-            if not file_type:
-                file_type = 'file'
-            relative_path = '%ss/%s' % (file_type, str(datetime.today())[:7])
-        else:
-            relative_path = relative_path.strip('/')
         response = requests.post(upload_link, data={
             'parent_dir': parent_dir,
             'relative_path': relative_path,
@@ -1044,9 +1043,8 @@ class SeaTableAPI(object):
         }
 
     @check_auth
-    def upload_local_file(self, file_path, name=None, relative_path=None, file_type=None, replace=False):
+    def upload_local_file(self, file_path, name=None, relative_path=None, file_type='file', replace=False):
         """
-        relative_path: relative path for upload, if None, default {file_type}s/{date of today}, eg: files/2020-09
         file_type: if relative is None, file type must in ['image', 'file'], default 'file'
         return: info dict of uploaded file
         """
@@ -1054,15 +1052,14 @@ class SeaTableAPI(object):
             raise Exception('file_type invalid.')
         if not name:
             name = file_path.strip('/').split('/')[-1]
-        if not relative_path:
-            if file_type and file_type not in ['image', 'file']:
-                raise Exception('relative or file_type invalid.')
-            if not file_type:
-                file_type = 'file'
-            relative_path = '%ss/%s' % (file_type, str(datetime.today())[:7])
-        else:
-            relative_path = relative_path.strip('/')
+        if file_type not in ['image', 'file']:
+            raise Exception('relative or file_type invalid.')
         upload_link_dict = self.get_file_upload_link()
+        if file_type == 'image':
+            relative_path = upload_link_dict['img_relative_path']
+        else:
+            relative_path = upload_link_dict['file_relative_path']
+            
         parent_dir = upload_link_dict['parent_path']
         upload_link = upload_link_dict['upload_link'] + '?ret-json=1'
         response = requests.post(upload_link, data={
