@@ -1335,7 +1335,7 @@ class Account(object):
                 if w.get('id') == workspace_id and w.get('group_id'):
                     owner = '%s@seafile_group' % w['group_id']
                     break
-                if w.get('id') == workspace_id and w.get('owner_type') == 'Personal':
+                if w.get('id') == workspace_id and w.get('type') == 'personal':
                     if not self.username:
                         self.load_account_info()  # load username for owner
                     owner = self.username
