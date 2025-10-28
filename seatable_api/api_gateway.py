@@ -419,6 +419,29 @@ class APIGateway(object):
 
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
+    
+
+    def batch_add_links(self, link_id, table_name, other_table_name, other_rows_ids_map):
+        """
+        :param link_id: str
+        :param table_name: str
+        :param other_table_name: str
+        :param other_rows_ids_map: dict
+        """
+        url = self._row_link_server_url()
+        json_data = {
+            'link_id': link_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
+            'other_rows_ids_map': other_rows_ids_map,
+        }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
+
+        response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
 
 
     def remove_link(self, link_id, table_name, other_table_name, row_id, other_row_id):
@@ -440,6 +463,29 @@ class APIGateway(object):
             json_data['table_id'] = table_name
         if like_table_id(other_table_name):
             json_data['other_table_id'] = other_table_name
+        response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
+        return parse_response(response)
+    
+
+    def batch_remove_links(self, link_id, table_name, other_table_name, other_rows_ids_map):
+        """
+        :param link_id: str
+        :param table_name: str
+        :param other_table_name: str
+        :param other_rows_ids_map: dict
+        """
+        url = self._row_link_server_url()
+        json_data = {
+            'link_id': link_id,
+            'table_name': table_name,
+            'other_table_name': other_table_name,
+            'other_rows_ids_map': other_rows_ids_map,
+        }
+        if like_table_id(table_name):
+            json_data['table_id'] = table_name
+        if like_table_id(other_table_name):
+            json_data['other_table_id'] = other_table_name
+
         response = requests.delete(url, json=json_data, headers=self.headers, timeout=self.timeout)
         return parse_response(response)
 
