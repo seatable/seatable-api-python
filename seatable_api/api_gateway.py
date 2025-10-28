@@ -675,6 +675,8 @@ class APIGateway(object):
         """
         if new_column_type not in ColumnTypes:
             raise ValueError("type %s invalid!" % (new_column_type,))
+        if new_column_type == ColumnTypes.LINK:
+            raise ValueError("Switching to link column type is not allowed!")
         url = self._column_server_url()
         json_data = {
             'op_type': MODIFY_COLUMN_TYPE,
