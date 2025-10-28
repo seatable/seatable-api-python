@@ -18,7 +18,7 @@ DELETE_COLUMN = 'delete_column'
 
 ##### column types #####
 @unique
-class ColumnTypes(Enum):
+class ColumnTypes(str, Enum):
     DEFAULT = 'default'
     NUMBER = 'number'
     TEXT = 'text'
