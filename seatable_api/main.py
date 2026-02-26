@@ -1152,7 +1152,7 @@ class SeaTableAPI(object):
 
     @check_auth
     @api_gateway_wrapper
-    def query(self, sql, convert=True):
+    def query(self, sql, convert=True, parameters=None):
         """
         :param sql: str
         :param convert: bool

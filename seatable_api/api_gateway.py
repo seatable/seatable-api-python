@@ -797,7 +797,7 @@ class APIGateway(object):
         return data
 
 
-    def query(self, sql, convert=True):
+    def query(self, sql, convert=True, parameters=None):
         """
         :param sql: str
         :param convert: bool
@@ -807,6 +807,8 @@ class APIGateway(object):
             raise ValueError('sql can not be empty.')
         url = self._dtable_db_query_url()
         json_data = {'sql': sql}
+        if parameters:
+            json_data['parameters'] = parameters
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         if not data.get('success'):
