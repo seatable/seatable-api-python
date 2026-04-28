@@ -45,6 +45,11 @@ class Context:
 
     @property
     @need_data
+    def current_view(self):
+        return context_data.get('view')
+
+    @property
+    @need_data
     def current_user_id(self):
         return context_data.get('current_user_id')
 
