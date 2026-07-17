@@ -1,8 +1,8 @@
 import requests
 
 from .constants import ROW_FILTER_KEYS, ColumnTypes
-from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE, DELETE_COLUMN
-from .utils import convert_db_rows, parse_response, like_table_id, parse_headers
+from .constants import RENAME_COLUMN, RESIZE_COLUMN, FREEZE_COLUMN, MOVE_COLUMN, MODIFY_COLUMN_TYPE
+from .utils import parse_response, like_table_id
 
 
 class APIGateway(object):
@@ -809,17 +809,14 @@ class APIGateway(object):
         json_data = {'sql': sql}
         if parameters:
             json_data['parameters'] = parameters
+        if convert:
+            json_data['convert_keys'] = True
         response = requests.post(url, json=json_data, headers=self.headers, timeout=self.timeout)
         data = parse_response(response)
         if not data.get('success'):
             raise Exception(data.get('error_message'))
-        metadata = data.get('metadata')
         results = data.get('results')
-        if convert:
-            converted_results = convert_db_rows(metadata, results)
-            return converted_results
-        else:
-            return results
+        return results
 
     def send_toast_notification(self, username, msg, toast_type='success'):
         url = self._send_toast_notification_url()
