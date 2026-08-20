@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-import sys
 import time
 import random
 import requests
@@ -27,8 +26,7 @@ ColumnTypes.BARCODE = 'barcode'
 FILE = 'file'
 IMAGE = 'image'
 
-logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S', stream=sys.stdout, level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 class LinksConvertor(object):
 

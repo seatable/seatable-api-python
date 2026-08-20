@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import sys
 from seatable_api import Base, AirtableConvertor
 from airtable_importer_settings import server_url, api_token, airtable_api_key, airtable_base_id, \
@@ -31,6 +32,13 @@ def import_rows():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        format='[%(asctime)s] [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        stream=sys.stdout,
+        level=logging.INFO,
+    )
+
     argv_info = '\nusage :\npython3 airtable_importer.py { --import-header | --import-rows }\n'
 
     if len(sys.argv) != 2:
