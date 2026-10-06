@@ -1255,7 +1255,7 @@ class SeaTableAPI(object):
             f.write(response.content)
 
     @check_auth
-    def upload_local_file_to_custom_folder(self, local_path, custom_folder_path = None, name=None, ):
+    def upload_local_file_to_custom_folder(self, local_path, custom_folder_path = None, name=None, replace=False):
         if not name:
             name = local_path.strip('/').split('/')[-1]
         if not custom_folder_path:
@@ -1269,9 +1269,31 @@ class SeaTableAPI(object):
         response = requests.post(upload_link, data={
             'parent_dir': parent_path,
             'relative_path': relative_path,
-            'replace': 0
+            'replace': 1 if replace else 0
         }, files={
             'file': (name, open(local_path, 'rb'))
+        }, timeout=self.timeout)
+        d = response.json()[0]
+
+        file_name = d.get('name')
+        return self.get_custom_file_info(custom_folder_path, file_name)
+
+    @check_auth
+    def upload_bytes_file_to_custom_folder(self, name, content: bytes, custom_folder_path=None, replace=False):
+        if not custom_folder_path:
+            custom_folder_path = '/'
+
+        upload_link_dict = self.get_custom_file_upload_link(parse.unquote(custom_folder_path))
+        upload_link = upload_link_dict.get('upload_link') + '?ret-json=1'
+        parent_path = upload_link_dict.get('parent_path')
+        relative_path = upload_link_dict.get('relative_path')
+
+        response = requests.post(upload_link, data={
+            'parent_dir': parent_path,
+            'relative_path': relative_path,
+            'replace': 1 if replace else 0
+        }, files={
+            'file': (name, io.BytesIO(content))
         }, timeout=self.timeout)
         d = response.json()[0]
 
