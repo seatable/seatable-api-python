@@ -235,7 +235,7 @@ class SeaTableAPI(object):
         params = {
             'account_name': account_name
         }
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
 
         data = parse_response(response)
@@ -617,7 +617,7 @@ class SeaTableAPI(object):
         """
         url = self._app_download_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('download_link')
@@ -628,7 +628,7 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._app_upload_link_url()
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1247,7 +1247,7 @@ class SeaTableAPI(object):
         """
         url = self._app_custom_download_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('download_link')
@@ -1256,7 +1256,7 @@ class SeaTableAPI(object):
     def get_custom_file_upload_link(self, path):
         url = self._app_custom_upload_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1298,7 +1298,7 @@ class SeaTableAPI(object):
     def get_custom_file_info(self, path, name):
         url = self._app_custom_asset_file_url()
         params = {'path': path, 'name': name}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         d = data['dirent']
@@ -1317,7 +1317,7 @@ class SeaTableAPI(object):
     def list_custom_assets(self, path):
         url = self._app_custom_asset_dir_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1326,7 +1326,7 @@ class SeaTableAPI(object):
     def get_user_info(self, username):
         url = self._app_user_info_url()
         params = {'username': username}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
