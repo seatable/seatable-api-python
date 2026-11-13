@@ -89,6 +89,37 @@ class SeaTableAPI(object):
             msg_sender = None
         return msg_sender
 
+    def _auth(self, workspace_id, dtable_name, dtable_uuid, access_token, dtable_server_url, dtable_db_url, use_api_gateway, with_socket_io=False):
+        self.jwt_exp = datetime.now() + timedelta(days=3)
+
+        self.dtable_server_url = parse_server_url(dtable_server_url)
+        self.dtable_db_url = parse_server_url(dtable_db_url)
+
+        self.jwt_token = access_token
+        self.headers = parse_headers(self.jwt_token)
+
+        self.workspace_id = workspace_id
+        self.dtable_name = dtable_name
+        self.dtable_uuid = dtable_uuid
+
+        self.use_api_gateway = use_api_gateway
+        if self.use_api_gateway:
+            self.api_gateway = APIGateway(
+                token = self.token,
+                api_gateway_url=self.server_url + '/api-gateway',
+                server_url=self.server_url,
+                headers=self.headers,
+                dtable_uuid=self.dtable_uuid
+            )
+            self.dtable_server_url = parse_server_url(self.server_url + '/api-gateway')
+
+        self.is_authed = True
+
+        if with_socket_io is True:
+            base = self._clone()
+            self.socketIO = SocketIO(base)
+            self.socketIO._connect()
+
     def auth(self, with_socket_io=False):
         """Auth to SeaTable
         """
@@ -98,31 +129,16 @@ class SeaTableAPI(object):
         response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
 
-        self.dtable_server_url = parse_server_url(data.get('dtable_server'))
-        self.dtable_db_url = parse_server_url(data.get('dtable_db', ''))
-        self.jwt_token = data.get('access_token')
-        self.headers = parse_headers(self.jwt_token)
-        self.workspace_id = data.get('workspace_id')
-        self.dtable_uuid = data.get('dtable_uuid')
-        self.dtable_name = data.get('dtable_name')
-
-        # api gateway entry
-        self.use_api_gateway = data.get('use_api_gateway')
-        if self.use_api_gateway:
-            self.api_gateway = APIGateway(
-                token = self.token,
-                api_gateway_url=self.server_url + '/api-gateway',
-                server_url=self.server_url,
-                headers=self.headers,
-                dtable_uuid=self.dtable_uuid
-            )
-
-        if with_socket_io is True:
-            base = self._clone()
-            self.socketIO = SocketIO(base)
-            self.socketIO._connect()
-
-        self.is_authed = True
+        self._auth(
+            data.get('workspace_id'),
+            data.get('dtable_name'),
+            data.get('dtable_uuid'),
+            data.get('access_token'),
+            data.get('dtable_server', ''),
+            data.get('dtable_db', ''),
+            data.get('use_api_gateway'),
+            with_socket_io=with_socket_io
+        )
 
     def _metadata_server_url(self):
         return self.dtable_server_url + '/api/v1/dtables/' + self.dtable_uuid + '/metadata/'
@@ -219,7 +235,7 @@ class SeaTableAPI(object):
         params = {
             'account_name': account_name
         }
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
 
         data = parse_response(response)
@@ -601,7 +617,7 @@ class SeaTableAPI(object):
         """
         url = self._app_download_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('download_link')
@@ -612,7 +628,7 @@ class SeaTableAPI(object):
         :return: dict
         """
         url = self._app_upload_link_url()
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1231,7 +1247,7 @@ class SeaTableAPI(object):
         """
         url = self._app_custom_download_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data.get('download_link')
@@ -1240,7 +1256,7 @@ class SeaTableAPI(object):
     def get_custom_file_upload_link(self, path):
         url = self._app_custom_upload_link_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1282,7 +1298,7 @@ class SeaTableAPI(object):
     def get_custom_file_info(self, path, name):
         url = self._app_custom_asset_file_url()
         params = {'path': path, 'name': name}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         d = data['dirent']
@@ -1301,7 +1317,7 @@ class SeaTableAPI(object):
     def list_custom_assets(self, path):
         url = self._app_custom_asset_dir_url()
         params = {'path': path}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1310,7 +1326,7 @@ class SeaTableAPI(object):
     def get_user_info(self, username):
         url = self._app_user_info_url()
         params = {'username': username}
-        headers = parse_headers(self.token)
+        headers = self.headers
         response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
         data = parse_response(response)
         return data
@@ -1346,6 +1362,13 @@ class Account(object):
 
     def _get_temp_api_token_url(self, workspace_id, name):
         return '%(server_url)s/api/v2.1/workspace/%(workspace_id)s/dtable/%(name)s/temp-api-token/' % {
+            'server_url': self.server_url,
+            'workspace_id': workspace_id,
+            'name': name
+        }
+
+    def _get_base_access_token_url(self, workspace_id, name):
+        return '%(server_url)s/api/v2.1/workspace/%(workspace_id)s/dtable/%(name)s/access-token/' % {
             'server_url': self.server_url,
             'workspace_id': workspace_id,
             'name': name
@@ -1407,9 +1430,21 @@ class Account(object):
         return parse_response(response).get('dtable')
 
     def get_base(self, workspace_id, base_name, with_socket_io=False):
-        response = requests.get(self._get_temp_api_token_url(workspace_id, base_name),
-            headers=self.token_headers, timeout=self.timeout)
-        api_token = parse_response(response).get('api_token')
-        base = SeaTableAPI(api_token, self.server_url)
-        base.auth(with_socket_io=with_socket_io)
+        response = requests.get(self._get_base_access_token_url(workspace_id, base_name),
+                                headers=self.token_headers,
+                                timeout=self.timeout)
+        resp_json = response.json()
+        access_token = resp_json['access_token']
+        dtable_uuid = resp_json['dtable_uuid']
+        base = SeaTableAPI('', self.server_url)
+        base._auth(
+            workspace_id,
+            base_name,
+            dtable_uuid,
+            access_token,
+            '',
+            '',
+            True,
+            with_socket_io=with_socket_io
+        )
         return base
